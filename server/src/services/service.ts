@@ -57,11 +57,9 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       const count = await strapi.entityService.count(uid, { filters: where });
       const tableData = await this.restructureData(response, excel.config[uid]);
 
-      console.log('count', count, tableData.length);
-
       return {
         data: tableData,
-        count: tableData.length,
+        count,
         columns: header,
       };
     } catch (error) {

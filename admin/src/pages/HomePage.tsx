@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import DataTable, { TableColumn } from 'react-data-table-component';
 import { useFetchClient } from '@strapi/strapi/admin';
 import { format } from 'date-fns';
 import {
@@ -12,7 +11,7 @@ import {
   SingleSelectOption,
 } from '@strapi/design-system';
 import { UID } from '@strapi/strapi';
-import { Table, Thead, Tbody, Tr, Td, Th } from '@strapi/design-system';
+import { StrapiTable } from '../components/StrapiTable';
 
 const HomePage = () => {
   const { get } = useFetchClient();
@@ -30,6 +29,7 @@ const HomePage = () => {
   const [loading, setLoading] = useState(false);
   const [totalRows, setTotalRows] = useState(0);
   const [perPage, setPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -48,8 +48,9 @@ const HomePage = () => {
 
   const handleComboboxChange = async (value: string | null) => {
     setSelectedValue(value);
+    setCurrentPage(1);
     if (value) {
-      fetchData(value, 1, 10);
+      fetchData(value, 1, perPage);
     }
   };
 
@@ -86,24 +87,6 @@ const HomePage = () => {
     }
   };
 
-  const columnRestructure: TableColumn<Record<string, string>>[] = columns.map((property) => ({
-    name: (
-      <Th>
-        <Typography variant="sigma">
-          {property.charAt(0).toUpperCase() + property.slice(1).replace(/_/g, ' ')}
-        </Typography>
-      </Th>
-    ),
-    selector: (row) => row[property],
-    cell: (row) => (
-      <Td>
-        <Typography variant="omega" textColor="red">
-          {row[property]}
-        </Typography>
-      </Td>
-    ),
-  }));
-
   const fetchData = async (value: string, page: number, newPerPage: number) => {
     setLoading(true);
     const currentSelectedValue = value;
@@ -135,22 +118,26 @@ const HomePage = () => {
 
   const handlePageChange = (page: number) => {
     if (!selectedValue) return;
+    setCurrentPage(page);
     fetchData(selectedValue, page, perPage);
   };
 
   const handlePerRowsChange = async (newPerPage: number, currentPage: number) => {
     setLoading(true);
+    setPerPage(newPerPage);
+    setCurrentPage(1);
+
     try {
-      const offset = (currentPage - 1) * newPerPage;
+      const offset = 0; // Reset to first page when changing per page
       const limit = newPerPage;
 
-      const response = await axios.get(
+      const { data: table } = await get(
         `/csv-exporter/get/table/data?uid=${selectedValue}&limit=${limit}&offset=${offset}`
       );
 
-      if (response?.data?.data) {
-        setTableData(response.data.data);
-        setPerPage(newPerPage);
+      if (table.data) {
+        setTableData(table.data);
+        setTotalRows(table.count);
       }
     } catch (error) {
       console.error('Error fetching table data:', error);
@@ -209,15 +196,15 @@ const HomePage = () => {
                   </Status>
                 )}
 
-                <DataTable
-                  pagination
-                  columns={columnRestructure}
+                <StrapiTable
+                  columns={columns}
                   data={tableData}
-                  progressPending={loading}
-                  paginationServer
-                  paginationTotalRows={totalRows}
-                  onChangeRowsPerPage={handlePerRowsChange}
-                  onChangePage={handlePageChange}
+                  totalRows={totalRows}
+                  currentPage={currentPage}
+                  perPage={perPage}
+                  loading={loading}
+                  onPageChange={handlePageChange}
+                  onPerPageChange={handlePerRowsChange}
                 />
               </>
             )}
