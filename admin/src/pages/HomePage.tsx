@@ -147,70 +147,69 @@ const HomePage = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', padding: '16px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '16px' }}>
-          <Typography variant="alpha">CSV Export</Typography>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '32px', gap: '24px' }}>
+      <Typography variant="alpha">CSV Export</Typography>
 
-        <div style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="form-group">
-              <label htmlFor="collectionType">
-                <Typography variant="omega" fontWeight="bold">
-                  Collection Type
-                </Typography>
-              </label>
-              <div style={{ maxWidth: '300px', marginTop: '8px' }}>
-                <SingleSelect
-                  id="collectionType"
-                  value={selectedValue || ''}
-                  onChange={(value) => handleComboboxChange(value.toString())}
-                  size="M"
-                  placeholder="Select Collection Type"
-                >
-                  {dropDownData.map((item) => (
-                    <SingleSelectOption key={item.value} value={item.value}>
-                      {item.label}
-                    </SingleSelectOption>
-                  ))}
-                </SingleSelect>
-              </div>
-            </div>
-
-            {selectedValue && (
-              <>
-                <Button
-                  onClick={handleDownloadCSV}
-                  size="L"
-                  style={{
-                    width: '300px',
-                  }}
-                >
-                  Download
-                </Button>
-
-                {isSuccessMessage && (
-                  <Status variant="success">
-                    <Typography>Download completed: {fileName} successfully downloaded!</Typography>
-                  </Status>
-                )}
-
-                <StrapiTable
-                  columns={columns}
-                  data={tableData}
-                  totalRows={totalRows}
-                  currentPage={currentPage}
-                  perPage={perPage}
-                  loading={loading}
-                  onPageChange={handlePageChange}
-                  onPerPageChange={handlePerRowsChange}
-                />
-              </>
-            )}
-          </div>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          marginTop: '8px',
+        }}
+      >
+        <label htmlFor="collectionType">
+          <Typography variant="omega" fontWeight="bold">
+            Collection Type
+          </Typography>
+        </label>
+        <div style={{ maxWidth: '300px' }}>
+          <SingleSelect
+            id="collectionType"
+            value={selectedValue || ''}
+            onChange={(value) => handleComboboxChange(value.toString())}
+            size="M"
+            placeholder="Select Collection Type"
+          >
+            {dropDownData.map((item) => (
+              <SingleSelectOption key={item.value} value={item.value}>
+                {item.label}
+              </SingleSelectOption>
+            ))}
+          </SingleSelect>
         </div>
       </div>
+
+      {selectedValue && (
+        <>
+          <Button
+            onClick={handleDownloadCSV}
+            size="L"
+            style={{
+              width: '300px',
+            }}
+          >
+            Download
+          </Button>
+
+          {isSuccessMessage && (
+            <Status variant="success">
+              <Typography>Download completed: {fileName} successfully downloaded!</Typography>
+            </Status>
+          )}
+
+          <StrapiTable
+            columns={columns}
+            data={tableData}
+            totalRows={totalRows}
+            currentPage={currentPage}
+            perPage={perPage}
+            loading={loading}
+            onPageChange={handlePageChange}
+            onPerPageChange={handlePerRowsChange}
+          />
+        </>
+      )}
     </div>
   );
 };
