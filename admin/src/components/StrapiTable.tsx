@@ -107,7 +107,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
             onChange={(value) => handlePerPageChange(value.toString())}
           >
             {perPageOptions.map((option) => (
-              <SingleSelectOption key={option} value={option.toString()}>
+              <SingleSelectOption key={option} value={option}>
                 {option}
               </SingleSelectOption>
             ))}

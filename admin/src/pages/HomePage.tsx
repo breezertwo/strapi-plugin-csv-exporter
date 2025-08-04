@@ -56,7 +56,7 @@ const HomePage = () => {
 
   const handleDownloadCSV = async () => {
     try {
-      const response = await axios.get('/csv-exporter/download/csv', {
+      const response = await axios.get('/csv-exporter/download', {
         responseType: 'arraybuffer',
         params: {
           uid: selectedValue,
@@ -64,8 +64,7 @@ const HomePage = () => {
       });
 
       if (response.data) {
-        const currentDate = new Date();
-        const formattedDate = format(currentDate, 'dd_MM_yyyy_HH_mm');
+        const formattedDate = format(new Date(), 'dd_MM_yyyy_HH_mm');
         const downloadFileName = `${selectedValue?.split('.')[1]}-export-${formattedDate}.csv`;
         setFileName(downloadFileName);
 
@@ -97,7 +96,7 @@ const HomePage = () => {
         const limit = newPerPage;
 
         const { data: table } = await get(
-          `/csv-exporter/get/table/data?uid=${value}&limit=${limit}&offset=${offset}`
+          `/csv-exporter/tabledata?uid=${value}&limit=${limit}&offset=${offset}`
         );
 
         if (table.columns) {
@@ -128,11 +127,11 @@ const HomePage = () => {
     setCurrentPage(1);
 
     try {
-      const offset = 0; // Reset to first page when changing per page
+      const offset = 0;
       const limit = newPerPage;
 
       const { data: table } = await get(
-        `/csv-exporter/get/table/data?uid=${selectedValue}&limit=${limit}&offset=${offset}`
+        `/csv-exporter/tabledata?uid=${selectedValue}&limit=${limit}&offset=${offset}`
       );
 
       if (table.data) {

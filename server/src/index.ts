@@ -28,3 +28,5 @@ export default {
   policies,
   middlewares,
 };
+
+export type { CSVExporterPlugin, ContentTypeConfig } from './services/service';

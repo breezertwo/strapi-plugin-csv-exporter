@@ -2,17 +2,40 @@ import type { Core, UID } from '@strapi/strapi';
 import type { Context } from 'koa';
 import { parseISO, format, isValid } from 'date-fns';
 
+export interface ContentTypeConfig {
+  columns: string[];
+  relation: {
+    [key: string]: {
+      column: string[];
+    };
+  };
+  locale?: string;
+  customColumns?: {
+    [key: string]: {
+      column: (item: any, uid: UID.ContentType) => string;
+    };
+  };
+}
+
+type AtLeastOne<T> = {
+  [K in keyof T]: Pick<T, K> & Partial<T>;
+}[keyof T];
+
+export interface CSVExporterPlugin {
+  config: AtLeastOne<Record<UID.ContentType, ContentTypeConfig>>;
+}
+
 const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   async getDropdownValues(ctx: Context) {
     try {
-      const { config } = strapi.config.get<{ config: Record<string, any> }>('csv-exporter');
+      const { config } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
       const contentTypes = Object.keys(config || {}) as UID.ContentType[];
       const dropDownValues = [];
 
       Object.entries(strapi.contentTypes).forEach(([uid, contentType]) => {
-        if (contentType?.kind === 'collectionType') {
-          contentTypes?.forEach((type) => {
-            if (uid?.startsWith(type)) {
+        if (contentType.kind === 'collectionType') {
+          contentTypes.forEach((type) => {
+            if (uid.includes(type)) {
               dropDownValues.push({
                 label: contentType?.info?.displayName,
                 value: uid,
@@ -29,69 +52,72 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       ctx.throw(500, 'internal server error while fetching dropdown data');
     }
   },
-  async getTableData(ctx) {
+  async getTableData(ctx: Context) {
     try {
-      const excel = strapi.config.get('csv-exporter') as any;
-      const uid = ctx.query.uid;
-      const limit = parseInt(ctx.query.limit, 10) || 10;
-      const offset = parseInt(ctx.query.offset, 10) || 0;
+      const { config } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
+      const uid = ctx.query.uid as UID.ContentType;
+      const limit = parseInt(ctx.query.limit as string, 10) || 10;
+      const offset = parseInt(ctx.query.offset as string, 10) || 0;
 
-      if (!uid || !excel?.config[uid]) {
+      if (!uid || !config[uid]) {
         return ctx.badRequest('Invalid content type uid');
       }
 
-      const query = await this.restructureObject(excel.config[uid], uid, limit, offset);
-
-      const response = await strapi.entityService.findMany(uid, query as any);
-      const header = [
-        ...excel.config[uid].columns,
-        ...Object.keys(excel.config[uid].relation || {}),
+      // header row
+      const columns = [
+        ...config[uid].columns.filter((column) => column !== 'documentId'),
+        ...Object.keys(config[uid].relation || {}),
+        ...Object.keys(config[uid].customColumns || {}),
       ];
+
+      const query = await this.restructureObject(config[uid], limit, offset);
+      const response = await strapi.documents(uid).findMany(query);
+      const data = await this.restructureData(response, config[uid], uid);
+
       let where = {};
-      if (excel.config[uid].locale) {
+      if (config[uid].locale) {
         where = {
-          locale: excel.config[uid].locale,
+          locale: config[uid].locale,
         };
       }
-
-      const count = await strapi.entityService.count(uid, { filters: where });
-      const tableData = await this.restructureData(response, excel.config[uid]);
+      const count = await strapi.documents(uid).count({ filters: where });
 
       return {
-        data: tableData,
+        columns,
+        data,
         count,
-        columns: header,
       };
     } catch (error) {
       strapi.log.error('Error fetching table data:', error);
       ctx.throw(500, 'Internal server error while fetching table data');
     }
   },
-  async downloadCSV(ctx) {
+  async downloadCSV(ctx: Context) {
     try {
-      const excel = strapi.config.get('csv-exporter') as any;
-      const uid = ctx.query.uid;
+      const { config } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
+      const uid = ctx.query.uid as UID.ContentType;
 
-      if (!uid || !excel?.config[uid]) {
+      if (!uid || !config[uid]) {
         return ctx.badRequest('Invalid content type uid');
       }
 
-      const query = await this.restructureObject(excel.config[uid], uid);
-      // Use entityService instead of query
-      const response = await strapi.entityService.findMany(uid, query as any);
-      const csvData = await this.restructureData(response, excel.config[uid]);
+      const query = await this.restructureObject(config[uid]);
+      const response = await strapi.documents(uid).findMany(query);
+
+      const csvData = await this.restructureData(response, config[uid], uid);
 
       // Extract column headers dynamically from the data
       const headers = [
-        ...excel.config[uid].columns,
-        ...Object.keys(excel.config[uid].relation || {}),
+        ...config[uid].columns.filter((column: string) => column !== 'documentId'),
+        ...Object.keys(config[uid].relation || {}),
+        ...Object.keys(config[uid].customColumns || {}),
       ];
 
       // Transform the original headers to the desired format
       const headerRestructure = headers.map((element) =>
         element
           .split('_')
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ')
       );
 
@@ -122,46 +148,40 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       ctx.throw(500, 'Internal server error while generating CSV file');
     }
   },
-  async restructureObject(inputObject: any, uid: UID.ContentType, limit?: number, offset?: number) {
-    const excel = strapi.config.get('csv-exporter') as any;
-
+  async restructureObject(config: ContentTypeConfig, limit?: number, offset?: number) {
     let filters = {};
 
-    if (excel?.config[uid]?.locale) {
+    if (config.locale) {
       filters = {
-        locale: excel?.config[uid]?.locale,
+        locale: config.locale,
       };
     }
 
-    // In Strapi v5, the query structure is updated
     const restructuredObject = {
-      fields: inputObject.columns || undefined,
+      fields: config.columns || undefined,
       populate: {},
       filters,
-      sort: { id: 'asc' },
+      // sort: { id: 'asc' },
       limit: limit,
       offset: offset,
     };
 
     // Populate relations
-    for (const key in inputObject.relation || {}) {
+    for (const key in config.relation || {}) {
       restructuredObject.populate[key] = {
-        fields: inputObject.relation[key].column,
+        fields: config.relation[key].column,
       };
     }
 
     return restructuredObject;
   },
-  async restructureData(data, objectStructure) {
+  async restructureData(data: any, config: ContentTypeConfig, uid: UID.ContentType) {
     const dateFormat = strapi.plugin('csv-exporter').config('dateFormat') as string;
 
-    return data.map((item) => {
+    return data.map((item: Record<string, any>) => {
       const restructuredItem = {};
 
-      // Restructure main data based on columns
-      for (const key of objectStructure.columns) {
-        console.log(key, item[key]);
-
+      for (const key of config.columns) {
         if (key in item) {
           if (isISODateString(item[key])) {
             restructuredItem[key] = format(item[key], dateFormat);
@@ -177,10 +197,9 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         }
       }
 
-      // Restructure relation data based on the specified structure
-      for (const key in objectStructure.relation || {}) {
+      for (const key in config.relation || {}) {
         if (key in item) {
-          const column = objectStructure.relation[key].column[0];
+          const column = config.relation[key].column[0];
           if (item[key] && typeof item[key] === 'object') {
             if (Array.isArray(item[key]) && item[key].length > 0) {
               restructuredItem[key] = item[key]
@@ -196,12 +215,16 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         }
       }
 
+      for (const key in config.customColumns || {}) {
+        restructuredItem[key] = config.customColumns[key].column(item, uid);
+      }
+
       return restructuredItem;
     });
   },
 });
 
-const isISODateString = (value) => {
+const isISODateString = (value: any) => {
   if (typeof value !== 'string') return false;
 
   const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;

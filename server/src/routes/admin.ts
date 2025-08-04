@@ -10,7 +10,7 @@ export default [
   },
   {
     method: 'GET',
-    path: '/get/table/data',
+    path: '/tabledata',
     handler: 'controller.getTableData',
     config: {
       policies: [],
@@ -19,7 +19,7 @@ export default [
   },
   {
     method: 'GET',
-    path: '/download/csv',
+    path: '/download',
     handler: 'controller.downloadCSV',
     config: {
       policies: [],
