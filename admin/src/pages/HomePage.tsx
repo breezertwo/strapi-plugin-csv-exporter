@@ -65,6 +65,15 @@ const HomePage = () => {
     setSortedColumns(newOrder);
   };
 
+  const handleColumnDelete = (columnToDelete: string) => {
+    const updatedColumns = sortedColumns.filter((column) => column !== columnToDelete);
+    setSortedColumns(updatedColumns);
+  };
+
+  const handleResetColumns = () => {
+    setSortedColumns([...columns]);
+  };
+
   const handleDownloadCSV = async () => {
     try {
       const response = await axios.get('/csv-exporter/download', {
@@ -81,7 +90,7 @@ const HomePage = () => {
         setFileName(downloadFileName);
 
         const blob = new Blob([response.data], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          type: 'text/csv',
         });
         const link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
@@ -214,7 +223,13 @@ const HomePage = () => {
             </Status>
           )}
 
-          <ColumnSorter columns={sortedColumns} onColumnsReorder={handleColumnsReorder} />
+          <ColumnSorter
+            columns={sortedColumns}
+            onColumnsReorder={handleColumnsReorder}
+            onColumnDelete={handleColumnDelete}
+            onResetColumns={handleResetColumns}
+            originalColumnsCount={columns.length}
+          />
 
           <StrapiTable
             columns={sortedColumns}

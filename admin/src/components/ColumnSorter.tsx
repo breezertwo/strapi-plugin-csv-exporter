@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
-import { Box, Flex, Typography, Button } from '@strapi/design-system';
-import { Drag } from '@strapi/icons';
+import { Box, Flex, Typography, Button, IconButton } from '@strapi/design-system';
+import { Drag, Cross } from '@strapi/icons';
 
 interface ColumnSorterProps {
   columns: string[];
   onColumnsReorder: (newOrder: string[]) => void;
+  onColumnDelete: (columnToDelete: string) => void;
+  onResetColumns: () => void;
+  originalColumnsCount: number;
 }
 
-const ColumnSorter: React.FC<ColumnSorterProps> = ({ columns, onColumnsReorder }) => {
+const ColumnSorter: React.FC<ColumnSorterProps> = ({
+  columns,
+  onColumnsReorder,
+  onColumnDelete,
+  onResetColumns,
+  originalColumnsCount,
+}) => {
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
   const [draggedOver, setDraggedOver] = useState<number | null>(null);
 
@@ -67,10 +76,22 @@ const ColumnSorter: React.FC<ColumnSorterProps> = ({ columns, onColumnsReorder }
     return column.replace(/_/g, ' ').toUpperCase();
   };
 
+  const handleDelete = (columnToDelete: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering drag events
+    onColumnDelete(columnToDelete);
+  };
+
   return (
     <Box>
       <Flex direction="column" gap={1} marginBottom={4} alignItems={'start'}>
-        <Typography variant="delta">Column Order</Typography>
+        <Flex justifyContent="space-between" alignItems="center" style={{ width: '100%' }}>
+          <Typography variant="delta">Column Order</Typography>
+          {columns.length < originalColumnsCount && (
+            <Button onClick={onResetColumns} variant="tertiary" size="S">
+              Reset All Columns
+            </Button>
+          )}
+        </Flex>
         <Typography variant="omega" textColor="neutral600">
           Drag and drop to reorder columns for the table and CSV export
         </Typography>
@@ -132,6 +153,19 @@ const ColumnSorter: React.FC<ColumnSorterProps> = ({ columns, onColumnsReorder }
             <Typography variant="pi" textColor="black">
               {formatColumnName(column)}
             </Typography>
+            <IconButton
+              onClick={(e) => handleDelete(column, e)}
+              label={`Delete ${formatColumnName(column)} column`}
+              variant="ghost"
+              size="S"
+              style={{
+                color: '#ee5a52',
+                marginLeft: '8px',
+                padding: '4px',
+              }}
+            >
+              <Cross />
+            </IconButton>
           </Flex>
         ))}
       </Flex>

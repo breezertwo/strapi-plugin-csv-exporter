@@ -19,13 +19,6 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
           contentTypes.forEach((type) => {
             if (uid.includes(type)) {
               const label = config[uid]?.dropdownLabel ?? contentType?.info?.displayName ?? type;
-              console.log(
-                'label',
-                label,
-                'vs',
-                config[uid]?.dropdownLabel,
-                contentType?.info?.displayName
-              );
               dropDownValues.push({
                 label,
                 value: uid,
