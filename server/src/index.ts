@@ -29,4 +29,4 @@ export default {
   middlewares,
 };
 
-export type { CSVExporterPlugin, ContentTypeConfig } from './services/service';
+export type { CSVExporterPlugin } from './utils';
