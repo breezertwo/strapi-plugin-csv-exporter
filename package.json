@@ -1,5 +1,5 @@
 {
-  "version": "0.0.0",
+  "version": "5.1.0",
   "keywords": [],
   "type": "commonjs",
   "exports": {
@@ -60,10 +60,10 @@
     "kind": "plugin",
     "name": "csv-exporter",
     "displayName": "CSV Exporter",
-    "description": "A plugin to export your Strapi content as CSV files"
+    "description": "A highly configurable plugin to export your Strapi content as CSV files"
   },
   "name": "strapi-plugin-csv-exporter",
-  "description": "A plugin to export your Strapi content as CSV files",
+  "description": "A highly configurable plugin to export your Strapi content as CSV files",
   "license": "MIT",
   "author": "breezertwo <andreas@heynanny.com>"
 }
