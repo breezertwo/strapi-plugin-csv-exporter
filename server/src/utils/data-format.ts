@@ -10,7 +10,7 @@ export interface RelationConfig {
 
 export interface ContentTypeConfig {
   columns: string[];
-  relation: {
+  relation?: {
     [key: string]: RelationConfig;
   };
   dropdownLabel?: string;
@@ -27,10 +27,11 @@ type AtLeastOne<T> = {
 }[keyof T];
 
 export interface CSVExporterPlugin {
+  dateFormat?: string;
+  ignore?: string[];
   config: AtLeastOne<Record<UID.ContentType, ContentTypeConfig>>;
 }
 
-// Recursive function to process nested relations
 const processRelations = (relations: { [key: string]: RelationConfig }): Record<string, any> => {
   const populate = {};
 
@@ -40,7 +41,6 @@ const processRelations = (relations: { [key: string]: RelationConfig }): Record<
       fields: relation.column,
     };
 
-    // If this relation has nested relations, process them recursively
     if (relation.relation) {
       populate[key].populate = processRelations(relation.relation);
     }
@@ -69,34 +69,25 @@ export const restructureObject = async (
     offset: offset,
   };
 
-  // Process relations recursively
   restructuredObject.populate = processRelations(config.relation || {});
-
-  console.log('query:', JSON.stringify(restructuredObject, null, 2));
-
   return restructuredObject;
 };
 
 export const restructureData = async (
   data: any,
   config: ContentTypeConfig,
-  uid: UID.ContentType
+  uid: UID.ContentType,
+  options: { dateFormat?: string; ignore?: string[] }
 ): Promise<Record<string, string>[]> => {
-  const dateFormat = strapi.plugin('csv-exporter').config('dateFormat') as string;
-
-  //console.log('data:', JSON.stringify(data, null, 2));
-  console.log('data:', config.columns);
-
   return data.map((item: Record<string, any>) => {
     const restructuredItem = {};
 
     // Process regular columns
     // filter out documentId - for some reason it gets added somewhere and i can not fathom where
-    for (const key of config.columns.filter((column) => column !== 'documentId')) {
-      console.log('key:', key);
+    for (const key of config.columns.filter((c) => !options.ignore.includes(c))) {
       if (key in item) {
         if (isISODateString(item[key])) {
-          restructuredItem[key] = format(item[key], dateFormat);
+          restructuredItem[key] = format(item[key], options.dateFormat ?? 'dd.MM.yyyy hh:mm');
         } else if (Array.isArray(item[key]) && item[key].length > 0) {
           restructuredItem[key] = item[key]
             .filter((e) => typeof e === 'string' || typeof e === 'number' || typeof e === 'boolean')
@@ -118,8 +109,6 @@ export const restructureData = async (
     for (const key in config.customColumns || {}) {
       restructuredItem[key] = config.customColumns[key].column(item, uid);
     }
-
-    console.log('parse result', restructuredItem);
 
     return restructuredItem;
   });

@@ -20,7 +20,7 @@ import { Layouts } from '@strapi/strapi/admin';
 import { useEffect, useRef, useState } from 'react';
 
 interface StrapiTableProps {
-  columns: string[];
+  columns: string[]; // Columns in the desired display order
   data: Array<Record<string, string>>;
   totalRows: number;
   currentPage: number;
@@ -75,6 +75,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
         <Table colCount={columns.length} rowCount={data.length}>
           <Thead>
             <Tr>
+              {/* Render headers in the order specified by columns prop */}
               {columns.map((column) => (
                 <Th key={column}>
                   <Typography variant="sigma">
@@ -87,6 +88,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
           <Tbody>
             {data.map((row, rowIndex) => (
               <Tr key={rowIndex}>
+                {/* Render data cells in the same order as headers */}
                 {columns.map((column) => (
                   <Td key={column}>
                     <Typography textColor="neutral800">{row[column] || '-'}</Typography>

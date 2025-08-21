@@ -44,9 +44,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   },
   async getTableData(ctx: Context) {
     try {
-      const { config } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
-
-      console.log('config obj', config);
+      const { config, dateFormat, ignore } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
 
       const uid = ctx.query.uid as UID.ContentType;
       const limit = parseInt(ctx.query.limit as string, 10) || 10;
@@ -63,7 +61,10 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       const query = await restructureObject(config[uid], validatedFilters, limit, offset);
       const response = await strapi.documents(uid).findMany(query);
-      const data = await restructureData(response, config[uid], uid);
+      const data = await restructureData(response, config[uid], uid, {
+        dateFormat,
+        ignore,
+      });
 
       // Collect all unique keys from the actual data
       const allKeys = new Set<string>();
@@ -88,8 +89,9 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   },
   async downloadCSV(ctx: Context) {
     try {
-      const { config } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
+      const { config, dateFormat, ignore } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
       const uid = ctx.query.uid as UID.ContentType;
+      const sortOrder = ctx.query.sortOrder as string[];
 
       if (!uid || !config[uid]) {
         return ctx.badRequest('Invalid content type uid');
@@ -102,7 +104,10 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       const query = await restructureObject(config[uid], validatedFilters);
       const response = await strapi.documents(uid).findMany(query);
-      const csvData = await restructureData(response, config[uid], uid);
+      const csvData = await restructureData(response, config[uid], uid, {
+        dateFormat,
+        ignore,
+      });
 
       // Collect all unique keys from the actual data
       const allKeys = new Set<string>();
@@ -110,8 +115,16 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         Object.keys(item).forEach((key) => allKeys.add(key));
       });
 
+      const sortedArray = Array.from(allKeys)
+        .filter((k) => sortOrder.includes(k))
+        .sort((a, b) => {
+          const indexA = sortOrder.indexOf(a);
+          const indexB = sortOrder.indexOf(b);
+          return indexA - indexB;
+        });
+
       // Transform the headers to the desired format
-      const headerRestructure = Array.from(allKeys).map((element) =>
+      const headerRestructure = sortedArray.map((element) =>
         element
           .split('_')
           .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -123,7 +136,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       // Add data rows to CSV
       csvData.forEach((row) => {
-        const csvRow = Array.from(allKeys)
+        const csvRow = sortedArray
           .map((header) => {
             // Handle values with commas by wrapping them in quotes
             const value =

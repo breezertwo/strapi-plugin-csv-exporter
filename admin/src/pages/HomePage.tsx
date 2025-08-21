@@ -9,9 +9,11 @@ import {
   Button,
   SingleSelect,
   SingleSelectOption,
+  Loader,
 } from '@strapi/design-system';
 import { UID } from '@strapi/strapi';
 import { StrapiTable } from '../components/StrapiTable';
+import { ColumnSorter } from '../components/ColumnSorter';
 
 const HomePage = () => {
   const { get } = useFetchClient();
@@ -20,6 +22,7 @@ const HomePage = () => {
     Array<{ label: string; value: UID.ContentType }>
   >([]);
   const [columns, setColumns] = useState<string[]>([]);
+  const [sortedColumns, setSortedColumns] = useState<string[]>([]);
   const [tableData, setTableData] = useState<Array<Record<string, string>>>([]);
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +54,15 @@ const HomePage = () => {
     setCurrentPage(1);
     if (value) {
       fetchData(value, 1, perPage);
+    } else {
+      setColumns([]);
+      setSortedColumns([]);
+      setTableData([]);
     }
+  };
+
+  const handleColumnsReorder = (newOrder: string[]) => {
+    setSortedColumns(newOrder);
   };
 
   const handleDownloadCSV = async () => {
@@ -60,6 +71,7 @@ const HomePage = () => {
         responseType: 'arraybuffer',
         params: {
           uid: selectedValue,
+          sortOrder: sortedColumns,
         },
       });
 
@@ -101,6 +113,10 @@ const HomePage = () => {
 
         if (table.columns) {
           setColumns(table.columns);
+          // Initialize sorted columns if not already set or if columns changed
+          if (sortedColumns.length === 0 || sortedColumns.length !== table.columns.length) {
+            setSortedColumns(table.columns);
+          }
         }
 
         if (table.data) {
@@ -162,7 +178,7 @@ const HomePage = () => {
             Collection Type
           </Typography>
         </label>
-        <div style={{ maxWidth: '300px' }}>
+        <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
           <SingleSelect
             id="collectionType"
             value={selectedValue || ''}
@@ -176,11 +192,12 @@ const HomePage = () => {
               </SingleSelectOption>
             ))}
           </SingleSelect>
+          {isLoading && <Loader small />}
         </div>
       </div>
 
       {selectedValue && (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <Button
             onClick={handleDownloadCSV}
             size="L"
@@ -197,8 +214,10 @@ const HomePage = () => {
             </Status>
           )}
 
+          <ColumnSorter columns={sortedColumns} onColumnsReorder={handleColumnsReorder} />
+
           <StrapiTable
-            columns={columns}
+            columns={sortedColumns}
             data={tableData}
             totalRows={totalRows}
             currentPage={currentPage}
@@ -207,7 +226,7 @@ const HomePage = () => {
             onPageChange={handlePageChange}
             onPerPageChange={handlePerRowsChange}
           />
-        </>
+        </div>
       )}
     </div>
   );
