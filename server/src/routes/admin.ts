@@ -4,8 +4,13 @@ export default [
     path: '/dropdownvalues',
     handler: 'controller.getDropdownValues',
     config: {
-      policies: [],
-      auth: false,
+      policies: [
+        'admin::isAuthenticatedAdmin',
+        {
+          name: 'plugin::content-manager.hasPermissions',
+          config: { actions: ['plugin::csv-exporter.usage'] },
+        },
+      ],
     },
   },
   {
@@ -13,8 +18,13 @@ export default [
     path: '/tabledata',
     handler: 'controller.getTableData',
     config: {
-      policies: [],
-      auth: false,
+      policies: [
+        'admin::isAuthenticatedAdmin',
+        {
+          name: 'plugin::content-manager.hasPermissions',
+          config: { actions: ['plugin::csv-exporter.usage'] },
+        },
+      ],
     },
   },
   {
@@ -22,8 +32,13 @@ export default [
     path: '/download',
     handler: 'controller.downloadCSV',
     config: {
-      policies: [],
-      auth: false,
+      policies: [
+        'admin::isAuthenticatedAdmin',
+        {
+          name: 'plugin::content-manager.hasPermissions',
+          config: { actions: ['plugin::csv-exporter.usage'] },
+        },
+      ],
     },
   },
 ];

@@ -14,9 +14,9 @@ export default {
       },
       Component: async () => {
         const { App } = await import('./pages/App');
-
         return App;
       },
+      permissions: [{ action: 'plugin::csv-exporter.usage', subject: null }],
     });
 
     app.registerPlugin({

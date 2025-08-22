@@ -2,30 +2,35 @@
 
 A highly configurable Strapi plugin that allows you to export your content types as CSV files with drag-and-drop interface for column management.
 
-![Plugin Version](https://img.shields.io/badge/version-5.1.0-blue)
+![Plugin Version](https://img.shields.io/badge/version-5.2.0-blue)
 ![Strapi Version](https://img.shields.io/badge/strapi-v5.0.0+-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## ✨ Features
 
 - **Easy CSV Export**: Export your Strapi collections to CSV format
-- **Interactive Table Preview**: View your data before export with pagination
+- **Interactive Table Preview**: View your data before export in the Admin Panel
 - **Flexible Configuration**: Configure which content types, collumns & relations are available for export
-- **Drag & Drop Column Reordering**: Visually reorder columns for both table display and CSV output in the Admin Panel
-- **Column Management**: Delete unwanted columns from exports
-- **Custom Filtering**: Apply filters as you would do with Strapi Document API
+- **Drag & Drop Column Reordering**: Reorder columns for both table display and CSV output in the Admin Panel
+- **Custom Filtering**: Apply optional filters as you would do with Strapi Document API
+- **Permission Management**: Select which users can use the plugin with a specific permission
+- **TypeScript Support**: Write the configuration file in TypeScript for better type safety
 
 ## 📦 Installation
+
+Minimum Strapi Version needed: v5
 
 ```bash
 npm install strapi-plugin-csv-exporter
 ```
 
+x
+
 ## 🚀 Quick Start
 
-1. **Install the plugin** (see installation instructions above)
+1. **Install the plugin**
 
-2. **Enable the plugin** in your `config/plugins.js`:
+2. **Enable the plugin** in your `config/plugins.ts`:
 
 ```javascript
 module.exports = {
@@ -35,9 +40,11 @@ module.exports = {
 };
 ```
 
-3. **Create** `config/csv-exporter.js` in your Strapi project:
+3. **Create** `config/csv-exporter.ts` in your Strapi project:
 
 ```javascript
+import type { CSVExporterPlugin } from "strapi-plugin-csv-exporter/dist/server/src";
+
 module.exports = (): CSVExporterPlugin => ({
   // Content type specific configurations
   config: {
@@ -49,7 +56,7 @@ module.exports = (): CSVExporterPlugin => ({
       // Columns to export
       columns: ['title', 'createdAt'],
 
-      // Optional relations as collumn
+      // Optional relations as column
       relation: {
         author: {
           column: ['name'],
@@ -80,15 +87,18 @@ module.exports = (): CSVExporterPlugin => ({
 };
 ```
 
-4. **Build and restart** your Strapi application:
+4. **Build and restart** your Strapi application
+
+5. **Add Permission** Enable your users to use the plugin in the permissions settings
 
 ## 🖥️ Usage
 
 ### Accessing the Plugin
 
 1. Log into your Strapi admin panel
-2. Navigate to **CSV Exporter** in your side bar panel
-3. The plugin interface will load with your configured content types in the dropdown
+2. Enable the plugin for your users in the permissions settings
+3. Navigate to **CSV Exporter** in your side bar panel
+4. The plugin interface will load with your configured content types in the dropdown
 
 ### Using the Interface
 
