@@ -109,7 +109,7 @@ const HomePage = () => {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          //Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -214,7 +214,8 @@ const HomePage = () => {
       paddingRight={10}
       gap={6}
       direction="column"
-      alignItems="flex-start"
+      alignItems="stretch"
+      grow={1}
     >
       <Typography variant="alpha">CSV Export</Typography>
       <Flex gap={4} direction="row" justifyContent="space-between" alignItems="flex-end">

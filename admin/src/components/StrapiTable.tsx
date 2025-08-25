@@ -40,7 +40,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
   onPerPageChange,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(window.innerWidth - 124);
+  const [width, setWidth] = useState(window.innerWidth - 168);
   const totalPages = Math.ceil(totalRows / perPage);
   const perPageOptions = [1, 10, 20, 50, 100, 250];
 
@@ -51,7 +51,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
 
   useEffect(() => {
     const handleResize = () => {
-      setWidth(window.innerWidth - 124);
+      setWidth(window.innerWidth - 168);
     };
 
     window.addEventListener('resize', handleResize);

@@ -116,8 +116,8 @@ const ColumnSorter: React.FC<ColumnSorterProps> = ({
             justifyContent="space-between"
             style={{
               minHeight: '48px',
-              paddingTop: '4px',
-              paddingBottom: '4px',
+              paddingTop: '2px',
+              paddingBottom: '2px',
               paddingLeft: '4px',
               paddingRight: '12px',
               border:
