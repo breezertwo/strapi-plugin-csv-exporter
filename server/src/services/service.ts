@@ -29,7 +29,21 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       });
 
       dropDownValues.sort((a, b) => a.label.localeCompare(b.label));
-      return dropDownValues;
+
+      const result = await strapi.documents('plugin::i18n.locale').findMany({
+        fields: ['name', 'code'],
+      });
+
+      const locales =
+        result?.map((locale) => ({
+          label: locale.name,
+          value: locale.code,
+        })) || [];
+
+      return {
+        locales,
+        contentTypes: dropDownValues,
+      };
     } catch (error) {
       strapi.log.error('Error fetching dropdown data:', error);
       ctx.throw(500, 'internal server error while fetching dropdown data');
@@ -42,6 +56,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       const uid = ctx.query.uid as UID.ContentType;
       const limit = parseInt(ctx.query.limit as string, 10) || 10;
       const offset = parseInt(ctx.query.offset as string, 10) || 0;
+      const locale = (ctx.query.locale as string) || 'en';
 
       if (!uid || !config[uid]) {
         return ctx.badRequest('Invalid content type uid');
@@ -53,7 +68,16 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       );
 
       const query = await restructureObject(config[uid], validatedFilters, limit, offset);
-      const response = await strapi.documents(uid).findMany(query);
+      const response = await strapi.documents(uid).findMany({
+        ...query,
+        filters: {
+          ...query.filters,
+          locale,
+        },
+      });
+
+      console.log('locale', locale);
+
       const data = await restructureData(response, config[uid], uid, {
         dateFormat,
         ignore,
@@ -65,10 +89,11 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         Object.keys(item).forEach((key) => allKeys.add(key));
       });
 
-      const where = {
-        locale: 'en',
-      };
-      const count = await strapi.documents(uid).count({ filters: where });
+      const count = await strapi.documents(uid).count({
+        filters: {
+          locale,
+        },
+      });
 
       return {
         columns: Array.from(allKeys),
@@ -85,6 +110,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       const { config, dateFormat, ignore } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
       const uid = ctx.query.uid as UID.ContentType;
       const sortOrder = ctx.query.sortOrder as string[];
+      const locale = (ctx.query.locale as string) || 'en';
 
       if (!uid || !config[uid]) {
         return ctx.badRequest('Invalid content type uid');
@@ -96,7 +122,13 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       );
 
       const query = await restructureObject(config[uid], validatedFilters);
-      const response = await strapi.documents(uid).findMany(query);
+      const response = await strapi.documents(uid).findMany({
+        ...query,
+        filters: {
+          ...query.filters,
+          locale,
+        },
+      });
       const csvData = await restructureData(response, config[uid], uid, {
         dateFormat,
         ignore,

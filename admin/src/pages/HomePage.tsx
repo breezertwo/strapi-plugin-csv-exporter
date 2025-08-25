@@ -1,31 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import { useFetchClient } from '@strapi/strapi/admin';
+import { useAuth, useFetchClient } from '@strapi/strapi/admin';
 import { format } from 'date-fns';
 import {
-  Main,
   Status,
   Typography,
   Button,
   SingleSelect,
   SingleSelectOption,
   Loader,
+  Flex,
 } from '@strapi/design-system';
-import { UID } from '@strapi/strapi';
 import { StrapiTable } from '../components/StrapiTable';
 import { ColumnSorter } from '../components/ColumnSorter';
 
+type DropDownValue = {
+  label: string;
+  value: string;
+};
+
+interface DropDownValues {
+  locales: DropDownValue[];
+  contentTypes: DropDownValue[];
+}
+
 const HomePage = () => {
   const { get } = useFetchClient();
+  const token = useAuth('CSVExporterHomePage', (state) => state.token);
 
-  const [dropDownData, setDropDownData] = useState<
-    Array<{ label: string; value: UID.ContentType }>
-  >([]);
+  const [dropDownData, setDropDownData] = useState<DropDownValues>({
+    locales: [],
+    contentTypes: [],
+  });
   const [columns, setColumns] = useState<string[]>([]);
   const [sortedColumns, setSortedColumns] = useState<string[]>([]);
   const [tableData, setTableData] = useState<Array<Record<string, string>>>([]);
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  const [selectedLocale, setSelectedLocale] = useState<string>('de');
   const [isLoading, setIsLoading] = useState(true);
   const [isSuccessMessage, setIsSuccessMessage] = useState(false);
+  const [isError, setIsError] = useState(false);
   const [fileName, setFileName] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -48,7 +61,7 @@ const HomePage = () => {
     fetchDropdownData();
   }, []);
 
-  const handleComboboxChange = async (value: string | null) => {
+  const handleCollectionTypeChange = async (value: string | null) => {
     setSelectedValue(value);
     setCurrentPage(1);
     if (value) {
@@ -58,6 +71,14 @@ const HomePage = () => {
       setSortedColumns([]);
       setTableData([]);
     }
+  };
+
+  const handleLocaleChange = async (locale: string) => {
+    if (isLoading) return;
+    setSelectedLocale(locale);
+
+    if (!selectedValue) return;
+    fetchData(selectedValue, 1, perPage, locale);
   };
 
   const handleColumnsReorder = (newOrder: string[]) => {
@@ -74,48 +95,65 @@ const HomePage = () => {
   };
 
   const handleDownloadCSV = async () => {
+    if (!selectedValue) return;
+
     try {
-      const response = await get('/csv-exporter/download', {
-        params: {
-          uid: selectedValue,
-          sortOrder: sortedColumns,
+      // Build custom fetch request as strapi get always processes with json and arraybuffer is needed here
+      const url = new URL('/csv-exporter/download', window.location.origin);
+      url.searchParams.append('uid', selectedValue);
+      url.searchParams.append('locale', selectedLocale);
+      sortedColumns.forEach((column, index) => {
+        url.searchParams.append(`sortOrder[${index + 1}]`, column);
+      });
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          //Authorization: `Bearer ${token}`,
         },
       });
 
-      if (response.data) {
-        const formattedDate = format(new Date(), 'dd_MM_yyyy_HH_mm');
-        const downloadFileName = `${selectedValue?.split('.')[1]}-export-${formattedDate}.csv`;
-        setFileName(downloadFileName);
-
-        const blob = new Blob([response.data], {
-          type: 'text/csv',
-        });
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = downloadFileName;
-        link.click();
-
-        setIsSuccessMessage(true);
-        setTimeout(() => {
-          setIsSuccessMessage(false);
-        }, 8000);
+      if (!response.ok) {
+        throw new Error('Fetch request failed with status code ' + response.status);
       }
+
+      const formattedDate = format(new Date(), 'dd_MM_yyyy_HH_mm');
+      const downloadFileName = `${selectedValue?.split('.')[1]}-export-${formattedDate}.csv`;
+      setFileName(downloadFileName);
+
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], {
+        type: 'text/csv',
+      });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = downloadFileName;
+      link.click();
+
+      setIsSuccessMessage(true);
+      setTimeout(() => {
+        setIsSuccessMessage(false);
+      }, 8000);
     } catch (error) {
+      setIsError(true);
+      setTimeout(() => {
+        setIsError(false);
+      }, 8000);
+
       console.error('Error downloading csv file:', error);
+      return;
     }
   };
 
-  const fetchData = async (value: string, page: number, newPerPage: number) => {
+  const fetchData = async (value: string, page: number, newPerPage: number, locale?: string) => {
     setLoading(true);
-    const currentSelectedValue = value;
-
-    if (currentSelectedValue) {
+    if (value) {
       try {
         const offset = (page - 1) * newPerPage;
         const limit = newPerPage;
 
         const { data: table } = await get(
-          `/csv-exporter/tabledata?uid=${value}&limit=${limit}&offset=${offset}`
+          `/csv-exporter/tabledata?uid=${value}&limit=${limit}&offset=${offset}&locale=${locale || selectedLocale}`
         );
 
         if (table.columns) {
@@ -154,7 +192,7 @@ const HomePage = () => {
       const limit = newPerPage;
 
       const { data: table } = await get(
-        `/csv-exporter/tabledata?uid=${selectedValue}&limit=${limit}&offset=${offset}`
+        `/csv-exporter/tabledata?uid=${selectedValue}&limit=${limit}&offset=${offset}&locale=${selectedLocale}`
       );
 
       if (table.data) {
@@ -169,40 +207,60 @@ const HomePage = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', padding: '32px', gap: '24px' }}>
+    <Flex
+      paddingTop={8}
+      paddingBottom={8}
+      paddingLeft={10}
+      paddingRight={10}
+      gap={6}
+      direction="column"
+      alignItems="flex-start"
+    >
       <Typography variant="alpha">CSV Export</Typography>
-
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          marginTop: '8px',
-        }}
-      >
-        <label htmlFor="collectionType">
-          <Typography variant="omega" fontWeight="bold">
-            Collection Type
-          </Typography>
-        </label>
-        <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
-          <SingleSelect
-            id="collectionType"
-            value={selectedValue || ''}
-            onChange={(value) => handleComboboxChange(value.toString())}
-            size="M"
-            placeholder="Select Collection Type"
-          >
-            {dropDownData.map((item) => (
-              <SingleSelectOption key={item.value} value={item.value}>
-                {item.label}
-              </SingleSelectOption>
-            ))}
-          </SingleSelect>
-          {isLoading && <Loader small />}
-        </div>
-      </div>
-
+      <Flex gap={4} direction="row" justifyContent="space-between" alignItems="flex-end">
+        <Flex gap={2} direction="column" marginTop={2} alignItems="flex-start" grow={1}>
+          <label htmlFor="collectionType">
+            <Typography variant="omega" fontWeight="bold">
+              Collection Type
+            </Typography>
+          </label>
+          <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
+            <SingleSelect
+              id="collectionType"
+              value={selectedValue || ''}
+              onChange={(value) => handleCollectionTypeChange(value.toString())}
+              size="M"
+              placeholder="Select Collection Type"
+            >
+              {dropDownData.contentTypes.map((item) => (
+                <SingleSelectOption key={item.value} value={item.value}>
+                  {item.label}
+                </SingleSelectOption>
+              ))}
+            </SingleSelect>
+            {isLoading && <Loader small />}
+          </div>
+        </Flex>
+        <Flex gap={2} direction="column" marginTop={2} alignItems="flex-start">
+          <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
+            <SingleSelect
+              id="locales"
+              value={selectedLocale || ''}
+              onChange={(value) => {
+                handleLocaleChange(value.toString());
+              }}
+              size="M"
+              placeholder="Select locale"
+            >
+              {dropDownData.locales.map((item) => (
+                <SingleSelectOption key={item.value} value={item.value}>
+                  {item.label}
+                </SingleSelectOption>
+              ))}
+            </SingleSelect>
+          </div>
+        </Flex>
+      </Flex>
       {selectedValue && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <Button
@@ -218,6 +276,12 @@ const HomePage = () => {
           {isSuccessMessage && (
             <Status variant="success">
               <Typography>Download completed: {fileName} successfully downloaded!</Typography>
+            </Status>
+          )}
+
+          {isError && (
+            <Status variant="danger">
+              <Typography>Error occurred while downloading the CSV file.</Typography>
             </Status>
           )}
 
@@ -241,7 +305,7 @@ const HomePage = () => {
           />
         </div>
       )}
-    </div>
+    </Flex>
   );
 };
 

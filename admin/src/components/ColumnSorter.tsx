@@ -131,7 +131,7 @@ const ColumnSorter: React.FC<ColumnSorterProps> = ({
                   ? '#f0f0ff'
                   : draggedOver === index && draggedItem !== index
                     ? '#f6ffed'
-                    : 'white',
+                    : '#ecebeb',
               transform: draggedItem === index ? 'scale(1.02)' : 'none',
               boxShadow:
                 draggedItem === index
@@ -142,7 +142,7 @@ const ColumnSorter: React.FC<ColumnSorterProps> = ({
             <Flex
               cursor="move"
               color={draggedItem === index ? '#4945ff' : '#8e8ea9'}
-              background={draggedItem === index ? '#f0f0ff' : 'white'}
+              background={draggedItem === index ? '#f0f0ff' : '#ecebeb'}
               alignItems="center"
               padding={1}
               borderRadius={1}
@@ -150,7 +150,7 @@ const ColumnSorter: React.FC<ColumnSorterProps> = ({
             >
               <Drag />
             </Flex>
-            <Typography variant="pi" textColor="black">
+            <Typography variant="pi" textColor="#252525">
               {formatColumnName(column)}
             </Typography>
             <IconButton
