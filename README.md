@@ -17,7 +17,7 @@ A highly configurable Strapi plugin that allows you to export your content types
 - **Custom Filtering**: Apply optional filters as you would do with Strapi Document API
 - **TypeScript Support**: Write the configuration file in TypeScript for better type safety
 
-<img src="https://postimg.cc/R69f5dzS" alt="Strapi Plugin CSV Exporter screenshot" width="600">
+<img src="https://i.postimg.cc/85fbvXK6/screenshot.png" alt="Strapi Plugin CSV Exporter screenshot" width="600">
 
 ## 📦 Installation
 
