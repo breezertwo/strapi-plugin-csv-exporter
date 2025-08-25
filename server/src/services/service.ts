@@ -76,8 +76,6 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         },
       });
 
-      console.log('locale', locale);
-
       const data = await restructureData(response, config[uid], uid, {
         dateFormat,
         ignore,
