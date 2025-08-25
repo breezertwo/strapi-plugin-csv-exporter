@@ -2,7 +2,7 @@
 
 A highly configurable Strapi plugin that allows you to export your content types as CSV files with drag-and-drop interface for column management.
 
-![Plugin Version](https://img.shields.io/badge/version-5.3.0-blue)
+![Plugin Version](https://img.shields.io/badge/version-5.3.1-blue)
 ![Strapi Version](https://img.shields.io/badge/strapi-v5.0.0+-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -16,6 +16,8 @@ A highly configurable Strapi plugin that allows you to export your content types
 - **Permission Management**: Select which users can use the plugin with a specific permission
 - **Custom Filtering**: Apply optional filters as you would do with Strapi Document API
 - **TypeScript Support**: Write the configuration file in TypeScript for better type safety
+
+<img src="https://postimg.cc/R69f5dzS" alt="Strapi Plugin CSV Exporter screenshot" width="600">
 
 ## 📦 Installation
 
