@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useFetchClient } from '@strapi/strapi/admin';
 import { format } from 'date-fns';
 import {
@@ -76,8 +75,7 @@ const HomePage = () => {
 
   const handleDownloadCSV = async () => {
     try {
-      const response = await axios.get('/csv-exporter/download', {
-        responseType: 'arraybuffer',
+      const response = await get('/csv-exporter/download', {
         params: {
           uid: selectedValue,
           sortOrder: sortedColumns,

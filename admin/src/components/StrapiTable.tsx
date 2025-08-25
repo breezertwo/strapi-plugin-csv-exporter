@@ -11,7 +11,6 @@ import {
   SingleSelect,
   SingleSelectOption,
   Pagination,
-  PaginationProps,
   PageLink,
   NextLink,
   PreviousLink,
