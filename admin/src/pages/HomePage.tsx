@@ -65,7 +65,7 @@ const HomePage = () => {
     setSelectedValue(value);
     setCurrentPage(1);
     if (value) {
-      fetchData(value, 1, perPage);
+      fetchData(value, 1, perPage, selectedLocale, true);
     } else {
       setColumns([]);
       setSortedColumns([]);
@@ -78,7 +78,7 @@ const HomePage = () => {
     setSelectedLocale(locale);
 
     if (!selectedValue) return;
-    fetchData(selectedValue, 1, perPage, locale);
+    fetchData(selectedValue, 1, perPage, locale, false);
   };
 
   const handleColumnsReorder = (newOrder: string[]) => {
@@ -145,7 +145,13 @@ const HomePage = () => {
     }
   };
 
-  const fetchData = async (value: string, page: number, newPerPage: number, locale?: string) => {
+  const fetchData = async (
+    value: string,
+    page: number,
+    newPerPage: number,
+    locale?: string,
+    resetSortedColumns?: boolean
+  ) => {
     setLoading(true);
     if (value) {
       try {
@@ -158,8 +164,8 @@ const HomePage = () => {
 
         if (table.columns) {
           setColumns(table.columns);
-          // Initialize sorted columns if not already set or if columns changed
-          if (sortedColumns.length === 0 || sortedColumns.length !== table.columns.length) {
+          // Initialize sorted columns if not already set or if reset is requested
+          if (sortedColumns.length === 0 || resetSortedColumns) {
             setSortedColumns(table.columns);
           }
         }
@@ -179,7 +185,7 @@ const HomePage = () => {
   const handlePageChange = (page: number) => {
     if (!selectedValue) return;
     setCurrentPage(page);
-    fetchData(selectedValue, page, perPage);
+    fetchData(selectedValue, page, perPage, selectedLocale, false);
   };
 
   const handlePerRowsChange = async (newPerPage: number, currentPage: number) => {
