@@ -2,7 +2,7 @@
 
 A highly configurable Strapi plugin that allows you to export your content types as CSV files with drag-and-drop interface for column management.
 
-![Plugin Version](https://img.shields.io/badge/version-5.3.1-blue)
+![Plugin Version](https://img.shields.io/badge/version-5.4.0-blue)
 ![Strapi Version](https://img.shields.io/badge/strapi-v5.0.0+-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -83,10 +83,12 @@ module.exports = (): CSVExporterPlugin => ({
 
     },
 
-  // Global date formatting (using date-fns format)
-  dateFormat: 'dd/MM/yyyy HH:mm',
-  // Fields to globally ignore in exports
-  ignore: ['documentId'],
+  // Optional: Global date formatting for all fields that are a valid ISO Date
+  dateFormat: 'dd/MM/yyyy HH:mm', // default
+  // Optional: Set a *global* IANA time zone identifier or UTC offset (e.g. 'Europe/Berlin' or '+02:00'). Per default, the current timezone of the client will be used to format timestamps. If no timezone can be determined, default will be UTC+00:00)
+  timeZone: '+00:00', // default
+  // Optional: Fields to globally ignore in exports
+  ignore: [], // default
 };
 ```
 

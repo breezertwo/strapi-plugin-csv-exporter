@@ -51,12 +51,18 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   },
   async getTableData(ctx: Context) {
     try {
-      const { config, dateFormat, ignore } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
+      const {
+        config,
+        dateFormat,
+        timeZone: configTimeZone,
+        ignore,
+      } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
 
       const uid = ctx.query.uid as UID.ContentType;
       const limit = parseInt(ctx.query.limit as string, 10) || 10;
       const offset = parseInt(ctx.query.offset as string, 10) || 0;
       const locale = (ctx.query.locale as string) || 'en';
+      const timeZone = (ctx.query.timezone as string) || '+00:00';
 
       if (!uid || !config[uid]) {
         return ctx.badRequest('Invalid content type uid');
@@ -78,6 +84,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       const data = await restructureData(response, config[uid], uid, {
         dateFormat,
+        timeZone: configTimeZone ?? timeZone,
         ignore,
       });
 
@@ -105,10 +112,16 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   },
   async downloadCSV(ctx: Context) {
     try {
-      const { config, dateFormat, ignore } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
+      const {
+        config,
+        dateFormat,
+        timeZone: configTimeZone,
+        ignore,
+      } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
       const uid = ctx.query.uid as UID.ContentType;
       const sortOrder = ctx.query.sortOrder as string[];
       const locale = (ctx.query.locale as string) || 'en';
+      const timeZone = (ctx.query.timezone as string) || '+00:00';
 
       if (!uid || !config[uid]) {
         return ctx.badRequest('Invalid content type uid');
@@ -130,6 +143,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       const csvData = await restructureData(response, config[uid], uid, {
         dateFormat,
         ignore,
+        timeZone: configTimeZone ?? timeZone,
       });
 
       // Collect all unique keys from the actual data

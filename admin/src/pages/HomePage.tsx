@@ -157,9 +157,10 @@ const HomePage = () => {
       try {
         const offset = (page - 1) * newPerPage;
         const limit = newPerPage;
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
         const { data: table } = await get(
-          `/csv-exporter/tabledata?uid=${value}&limit=${limit}&offset=${offset}&locale=${locale || selectedLocale}`
+          `/csv-exporter/tabledata?uid=${value}&limit=${limit}&offset=${offset}&locale=${locale || selectedLocale}&timezone=${timeZone}`
         );
 
         if (table.columns) {
