@@ -1,3 +1,4 @@
+import { TZDate } from '@date-fns/tz';
 import type { UID } from '@strapi/strapi';
 import { parseISO, format, isValid } from 'date-fns';
 
@@ -28,6 +29,7 @@ type AtLeastOne<T> = {
 
 export interface CSVExporterPlugin {
   dateFormat?: string;
+  timeZone?: string;
   ignore?: string[];
   config: AtLeastOne<Record<UID.ContentType, ContentTypeConfig>>;
 }
@@ -77,7 +79,7 @@ export const restructureData = async (
   data: any,
   config: ContentTypeConfig,
   uid: UID.ContentType,
-  options: { dateFormat?: string; ignore?: string[] }
+  options: { dateFormat?: string; timeZone?: string; ignore?: string[] }
 ): Promise<Record<string, string>[]> => {
   return data.map((item: Record<string, any>) => {
     const restructuredItem = {};
@@ -87,7 +89,10 @@ export const restructureData = async (
     for (const key of config.columns.filter((c) => !options.ignore.includes(c))) {
       if (key in item) {
         if (isISODateString(item[key])) {
-          restructuredItem[key] = format(item[key], options.dateFormat ?? 'dd.MM.yyyy hh:mm');
+          restructuredItem[key] = format(
+            new TZDate(item[key], options.timeZone ?? 'Europe/Berlin'),
+            options.dateFormat ?? 'dd.MM.yyyy HH:mm'
+          );
         } else if (Array.isArray(item[key]) && item[key].length > 0) {
           restructuredItem[key] = item[key]
             .filter((e) => typeof e === 'string' || typeof e === 'number' || typeof e === 'boolean')
