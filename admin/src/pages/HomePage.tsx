@@ -78,7 +78,7 @@ const HomePage = () => {
     setSelectedLocale(locale);
 
     if (!selectedValue) return;
-    fetchData(selectedValue, 1, perPage, locale, false);
+    fetchData(selectedValue, currentPage, perPage, locale, false);
   };
 
   const handleColumnsReorder = (newOrder: string[]) => {
