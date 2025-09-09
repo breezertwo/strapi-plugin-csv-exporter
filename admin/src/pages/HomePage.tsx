@@ -98,10 +98,13 @@ const HomePage = () => {
     if (!selectedValue) return;
 
     try {
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       // Build custom fetch request as strapi get always processes with json and arraybuffer is needed here
       const url = new URL('/csv-exporter/download', window.location.origin);
       url.searchParams.append('uid', selectedValue);
       url.searchParams.append('locale', selectedLocale);
+      url.searchParams.append('timezone', timeZone);
       sortedColumns.forEach((column, index) => {
         url.searchParams.append(`sortOrder[${index + 1}]`, column);
       });
@@ -150,12 +153,13 @@ const HomePage = () => {
     page: number,
     newPerPage: number,
     locale?: string,
-    resetSortedColumns?: boolean
+    resetSortedColumns?: boolean,
+    offsetOverride?: number
   ) => {
     setLoading(true);
     if (value) {
       try {
-        const offset = (page - 1) * newPerPage;
+        const offset = offsetOverride ?? (page - 1) * newPerPage;
         const limit = newPerPage;
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -175,6 +179,8 @@ const HomePage = () => {
           setTableData(table.data);
           setTotalRows(table.count);
         }
+
+        return table;
       } catch (error) {
         console.error('Error fetching table data:', error);
       } finally {
@@ -190,16 +196,20 @@ const HomePage = () => {
   };
 
   const handlePerRowsChange = async (newPerPage: number, currentPage: number) => {
+    if (!selectedValue) return;
+
     setLoading(true);
     setPerPage(newPerPage);
     setCurrentPage(1);
 
     try {
-      const offset = 0;
-      const limit = newPerPage;
-
-      const { data: table } = await get(
-        `/csv-exporter/tabledata?uid=${selectedValue}&limit=${limit}&offset=${offset}&locale=${selectedLocale}`
+      const table = await fetchData(
+        selectedValue,
+        currentPage,
+        newPerPage,
+        selectedLocale,
+        false,
+        0
       );
 
       if (table.data) {

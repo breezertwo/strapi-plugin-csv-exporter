@@ -2,7 +2,7 @@
 
 A highly configurable Strapi plugin that allows you to export your content types as CSV files with drag-and-drop interface for column management.
 
-![Plugin Version](https://img.shields.io/badge/version-5.4.1-blue)
+![Plugin Version](https://img.shields.io/badge/version-5.4.2-blue)
 ![Strapi Version](https://img.shields.io/badge/strapi-v5.0.0+-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -26,8 +26,6 @@ Minimum Strapi Version needed: v5
 ```bash
 npm install strapi-plugin-csv-exporter
 ```
-
-x
 
 ## 🚀 Quick Start
 
