@@ -44,7 +44,7 @@ module.exports = {
 3. **Create** `config/csv-exporter.ts` in your Strapi project:
 
 ```javascript
-import type { CSVExporterPlugin } from "strapi-plugin-csv-exporter/dist/server/src";
+import type { CSVExporterPlugin } from "strapi-plugin-csv-exporter/strapi-server";
 
 module.exports = (): CSVExporterPlugin => ({
   // Content type specific configurations
@@ -80,6 +80,7 @@ module.exports = (): CSVExporterPlugin => ({
       }
 
     },
+  },
 
   // Optional: Global date formatting for all fields that are a valid ISO Date
   dateFormat: 'dd/MM/yyyy HH:mm', // default
@@ -87,7 +88,7 @@ module.exports = (): CSVExporterPlugin => ({
   timeZone: '+00:00', // default
   // Optional: Fields to globally ignore in exports
   ignore: [], // default
-};
+});
 ```
 
 4. **Build and restart** your Strapi application
