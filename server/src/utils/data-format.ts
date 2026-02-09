@@ -16,6 +16,7 @@ export interface ContentTypeConfig {
   };
   dropdownLabel?: string;
   filter?: Record<string, any>;
+  status?: 'draft' | 'published';
   customColumns?: {
     [key: string]: {
       column: (item: any, uid: UID.ContentType) => string;
@@ -65,6 +66,7 @@ export const restructureObject = async (
   const restructuredObject = {
     fields: config.columns || undefined,
     filters,
+    status: config.status || 'draft',
     populate: {},
     sort: 'id:asc',
     limit: limit,

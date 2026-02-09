@@ -2,9 +2,17 @@
 
 A highly configurable Strapi plugin that allows you to export your content types as CSV files with drag-and-drop interface for column management.
 
-![Plugin Version](https://img.shields.io/badge/version-5.4.2-blue)
-![Strapi Version](https://img.shields.io/badge/strapi-v5.0.0+-green)
-![License](https://img.shields.io/badge/license-MIT-green)
+<p align="center">
+  <a href="https://www.npmjs.com/package/strapi-plugin-csv-exporter">
+    <img src="https://img.shields.io/npm/v/strapi-plugin-csv-exporter?style=flat-square&color=blue" alt="NPM Version" />
+  </a>
+  <a href="https://github.com/strapi/strapi">
+    <img src="https://img.shields.io/badge/strapi-v5.0.0+-green?style=flat-square" alt="Strapi Version" />
+  </a>
+  <a href="https://github.com/breezertwo/strapi-plugin-csv-exporter/blob/main/LICENSE">
+    <img src="https://img.shields.io/npm/l/strapi-plugin-csv-exporter?style=flat-square" alt="License" />
+  </a>
+</p>
 
 ## ✨ Features
 
@@ -21,11 +29,11 @@ A highly configurable Strapi plugin that allows you to export your content types
 
 ## 📦 Installation
 
-Minimum Strapi Version needed: v5
-
 ```bash
 npm install strapi-plugin-csv-exporter
 ```
+
+_Minimum Strapi Version needed: v5_
 
 ## 🚀 Quick Start
 
@@ -57,19 +65,22 @@ module.exports = (): CSVExporterPlugin => ({
       // Columns to export
       columns: ['title', 'createdAt'],
 
-      // Optional relations as column
+      // Relations as column (optional)
       relation: {
         author: {
           column: ['name'],
         }
       },
 
-      // Optional filters to apply to the query
+      // Filters to apply to the query (optional)
       filter: {
-        publishedAt: {
-          $ne: null,
+        title: {
+          $contains: 'Hello',
         },
       },
+
+      // Status (draft or published, optional)
+      status: 'published', // defaults to draft if not provided
 
       // Custom columns to add to the table
       customColumns: {
@@ -131,13 +142,12 @@ module.exports = (): CSVExporterPlugin => ({
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE.md) file for details.
 
-- Built for [Strapi](https://strapi.io/) - The leading open-source headless CMS
-- Uses [Strapi Design System](https://design-system.strapi.io/) for UI components
+If you find this plugin helpful, please consider:
 
----
-
-<div align="center">
-  <strong>⭐ If this plugin helped you, please consider giving it a star on GitHub! ⭐</strong>
-</div>
+- ⭐ **Starring** the repository
+- 🐛 **Reporting** bugs and issues
+- 🤝 **Contributing** to the project
+- 💡 **Suggesting** new features
+- 📣 **Sharing** with others who might benefit
