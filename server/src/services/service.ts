@@ -80,11 +80,15 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       );
 
       const query = await restructureObject(config[uid], validatedFilters, limit, offset);
+
+      const localesService = strapi.plugin('i18n').service('locales');
+      const locales = await localesService.find();
+
       const response = await strapi.documents(uid).findMany({
         ...query,
         filters: {
           ...query.filters,
-          locale,
+          ...(Array.isArray(locales) && locales.length > 1 ? { locale } : {}),
         },
       });
 
@@ -102,7 +106,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       const count = await strapi.documents(uid).count({
         filters: {
-          locale,
+          ...(Array.isArray(locales) && locales.length > 1 ? { locale } : {}),
         },
       });
 
@@ -138,12 +142,15 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         strapi.contentTypes[uid].attributes
       );
 
+      const localesService = strapi.plugin('i18n').service('locales');
+      const locales = await localesService.find();
+
       const query = await restructureObject(config[uid], validatedFilters);
       const response = await strapi.documents(uid).findMany({
         ...query,
         filters: {
           ...query.filters,
-          locale,
+          ...(Array.isArray(locales) && locales.length > 1 ? { locale } : {}),
         },
       });
       const csvData = await restructureData(response, config[uid], uid, {
