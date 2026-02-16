@@ -52,6 +52,16 @@ module.exports = {
 3. **Create** `config/csv-exporter.ts` in your Strapi project:
 
 ```javascript
+// for strapi tsconfig
+//  "module": "CommonJS",
+//  "moduleResolution": "Node",
+// use
+//
+// import type { CSVExporterPlugin } from "strapi-plugin-csv-exporter/dist/server/src";
+//
+// for
+//  "module": "Node16",
+//  "moduleResolution": "Node16",
 import type { CSVExporterPlugin } from "strapi-plugin-csv-exporter/strapi-server";
 
 module.exports = (): CSVExporterPlugin => ({
