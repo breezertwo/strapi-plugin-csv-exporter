@@ -4,6 +4,7 @@ import {
   restructureData,
   restructureObject,
   validateFilter,
+  getDefaultLocale,
   type CSVExporterPlugin,
 } from '../utils';
 
@@ -30,19 +31,24 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       dropDownValues.sort((a, b) => a.label.localeCompare(b.label));
 
-      const result = await strapi.documents('plugin::i18n.locale').findMany({
-        fields: ['name', 'code'],
-      });
+      // get available locales & default locale
+      const localesService = strapi.plugin('i18n').service('locales');
+      const result = await localesService.find();
 
-      const locales =
-        result?.map((locale) => ({
+      const allLocales =
+        result?.map((locale: any) => ({
           label: locale.name,
           value: locale.code,
         })) || [];
 
+      const resultWithDefault = await localesService.setIsDefault(result);
+      const defaultLocaleEntry = resultWithDefault?.find((l: any) => l.isDefault);
+      const defaultLocale = defaultLocaleEntry?.code || allLocales[0]?.value || 'en';
+
       return {
-        locales,
+        locales: allLocales,
         contentTypes: dropDownValues,
+        defaultLocale,
       };
     } catch (error) {
       strapi.log.error('Error fetching dropdown data:', error);
@@ -61,7 +67,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       const uid = ctx.query.uid as UID.ContentType;
       const limit = parseInt(ctx.query.limit as string, 10) || 10;
       const offset = parseInt(ctx.query.offset as string, 10) || 0;
-      const locale = (ctx.query.locale as string) || 'en';
+      const locale = (ctx.query.locale as string) || (await getDefaultLocale(strapi));
       const timeZone = (ctx.query.timezone as string) || '+00:00';
 
       if (!uid || !config[uid]) {
@@ -120,7 +126,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
       const uid = ctx.query.uid as UID.ContentType;
       const sortOrder = ctx.query.sortOrder as string[];
-      const locale = (ctx.query.locale as string) || 'en';
+      const locale = (ctx.query.locale as string) || (await getDefaultLocale(strapi));
       const timeZone = (ctx.query.timezone as string) || '+00:00';
 
       if (!uid || !config[uid]) {

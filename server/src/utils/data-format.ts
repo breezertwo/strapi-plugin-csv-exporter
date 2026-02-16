@@ -59,7 +59,6 @@ export const restructureObject = async (
   offset?: number
 ) => {
   const filters = {
-    locale: 'en',
     ...(filter || {}),
   };
 

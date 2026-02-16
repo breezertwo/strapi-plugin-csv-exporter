@@ -35,7 +35,7 @@ const HomePage = () => {
   const [sortedColumns, setSortedColumns] = useState<string[]>([]);
   const [tableData, setTableData] = useState<Array<Record<string, string>>>([]);
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
-  const [selectedLocale, setSelectedLocale] = useState<string>('de');
+  const [selectedLocale, setSelectedLocale] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSuccessMessage, setIsSuccessMessage] = useState(false);
   const [isError, setIsError] = useState(false);
@@ -51,6 +51,13 @@ const HomePage = () => {
       try {
         const { data } = await get('/csv-exporter/dropdownvalues');
         setDropDownData(data);
+
+        if (data.defaultLocale) {
+          setSelectedLocale(data.defaultLocale);
+        } else if (data.locales?.length > 0) {
+          setSelectedLocale(data.locales[0].value);
+        }
+
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching dropdown value:', error);
