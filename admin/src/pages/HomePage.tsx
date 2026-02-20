@@ -108,7 +108,10 @@ const HomePage = () => {
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       // Build custom fetch request as strapi get always processes with json and arraybuffer is needed here
-      const url = new URL('/csv-exporter/download', window.location.origin);
+      const url = new URL(
+        '/csv-exporter/download',
+        (window.strapi as any).backendURL ?? window.location.origin
+      );
       url.searchParams.append('uid', selectedValue);
       url.searchParams.append('locale', selectedLocale);
       url.searchParams.append('timezone', timeZone);
