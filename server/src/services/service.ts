@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream';
+
 import type { Core, UID } from '@strapi/strapi';
 import type { Context } from 'koa';
 import {
@@ -12,11 +14,13 @@ import {
   assertCanReadContentType,
   canReadContentType,
   sanitizeRows,
-  readableColumns,
+  permittedColumns,
   isApplicationError,
   orderColumns,
   toCSVRow,
   toStringArray,
+  batched,
+  clampPageSize,
   CSV_LINE_BREAK,
   CSV_CONTENT_TYPE,
   UTF8_BOM,
@@ -70,7 +74,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       assertExportableUid(uid, config, strapi.contentTypes);
       const permissionChecker = assertCanReadContentType(strapi, ctx, uid);
 
-      const limit = parseInt(ctx.query.limit as string, 10) || 10;
+      const limit = clampPageSize(parseInt(ctx.query.limit as string, 10) || 10);
       const offset = parseInt(ctx.query.offset as string, 10) || 0;
       const locale = (ctx.query.locale as string) || (await getDefaultLocale(strapi));
       const timeZone = (ctx.query.timezone as string) || '+00:00';
@@ -87,15 +91,18 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         locale,
       });
 
-      const sanitized = await sanitizeRows(permissionChecker, response);
-
-      const data = await restructureData(sanitized.rows, config[uid], uid, {
-        dateFormat,
-        dateOnlyFormat,
-        timeFormat,
-        timeZone: configTimeZone ?? timeZone,
-        ignore,
-      });
+      const data = await restructureData(
+        await sanitizeRows(permissionChecker, response),
+        config[uid],
+        uid,
+        {
+          dateFormat,
+          dateOnlyFormat,
+          timeFormat,
+          timeZone: configTimeZone ?? timeZone,
+          ignore,
+        }
+      );
 
       const count = await strapi.documents(uid).count({
         filters: query.filters,
@@ -104,9 +111,9 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       });
 
       return {
-        columns: readableColumns(
+        columns: await permittedColumns(
+          permissionChecker,
           expectedColumns(config[uid], ignore),
-          sanitized.removed,
           strapi.contentTypes[uid].attributes
         ),
         data,
@@ -130,6 +137,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         ignore,
         escapeFormulas,
         bom,
+        batchSize,
+        maxRows,
       } = getPluginConfig(strapi);
       const uid = ctx.query.uid as UID.ContentType;
 
@@ -146,52 +155,61 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       );
 
       const query = await restructureObject(config[uid], validatedFilters);
-      const response = await strapi.documents(uid).findMany({
-        ...query,
-        locale,
-      });
-      const sanitized = await sanitizeRows(permissionChecker, response);
+      const csvOptions = { escapeFormulas };
 
-      const csvData = await restructureData(sanitized.rows, config[uid], uid, {
-        dateFormat,
-        dateOnlyFormat,
-        timeFormat,
-        ignore,
-        timeZone: configTimeZone ?? timeZone,
-      });
+      const fetchPage = (limit: number, offset: number) =>
+        strapi.documents(uid).findMany({ ...query, locale, limit, offset });
 
-      const sortedArray = orderColumns(
-        readableColumns(
+      const columns = orderColumns(
+        await permittedColumns(
+          permissionChecker,
           expectedColumns(config[uid], ignore),
-          sanitized.removed,
           strapi.contentTypes[uid].attributes
         ),
         sortOrder
       );
 
-      // Transform the headers to the desired format
-      const headerRestructure = sortedArray.map((element) =>
-        element
+      const header = columns.map((column) =>
+        column
           .split('_')
           .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ')
       );
 
-      // Create CSV content
-      const csvOptions = { escapeFormulas };
-      let csvContent = bom ? UTF8_BOM : '';
-      csvContent += toCSVRow(headerRestructure, csvOptions) + CSV_LINE_BREAK;
+      const rows = async function* () {
+        if (bom) {
+          yield UTF8_BOM;
+        }
 
-      // Add data rows to CSV
-      csvData.forEach((row) => {
-        const values = sortedArray.map((header) => row[header]);
-        csvContent += toCSVRow(values, csvOptions) + CSV_LINE_BREAK;
-      });
+        yield toCSVRow(header, csvOptions) + CSV_LINE_BREAK;
 
-      // Set response headers
+        for await (const page of batched(fetchPage, { batchSize, maxRows })) {
+          const restructured = await restructureData(
+            await sanitizeRows(permissionChecker, page),
+            config[uid],
+            uid,
+            {
+              dateFormat,
+              dateOnlyFormat,
+              timeFormat,
+              ignore,
+              timeZone: configTimeZone ?? timeZone,
+            }
+          );
+
+          for (const row of restructured) {
+            yield toCSVRow(
+              columns.map((column) => row[column]),
+              csvOptions
+            ) + CSV_LINE_BREAK;
+          }
+        }
+      };
+
       ctx.set('Content-Disposition', 'attachment; filename=export.csv');
       ctx.set('Content-Type', CSV_CONTENT_TYPE);
-      return Buffer.from(csvContent);
+
+      return Readable.from(rows());
     } catch (error) {
       if (isApplicationError(error)) throw error;
 

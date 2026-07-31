@@ -36,6 +36,8 @@ export interface CSVExporterPlugin {
   ignore?: string[];
   escapeFormulas?: boolean;
   bom?: boolean;
+  batchSize?: number;
+  maxRows?: number;
   config: AtLeastOne<Record<UID.ContentType, ContentTypeConfig>>;
 }
 

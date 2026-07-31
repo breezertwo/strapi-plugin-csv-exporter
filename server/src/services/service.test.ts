@@ -29,9 +29,11 @@ const fakePlugin =
   ({
     canRead = true,
     sanitize = (row: any) => row,
+    allowFields,
   }: {
     canRead?: boolean;
     sanitize?: (row: any) => any;
+    allowFields?: string[];
   } = {}) =>
   (name: string) =>
     name === 'content-manager'
@@ -40,6 +42,11 @@ const fakePlugin =
             create: () => ({
               cannot: { read: () => !canRead },
               sanitizeOutput: async (row: any) => sanitize(row),
+              sanitizeQuery: async ({ fields }: any) => ({
+                fields: allowFields
+                  ? fields.filter((f: string) => allowFields.includes(f))
+                  : fields,
+              }),
             }),
           }),
         }
@@ -50,6 +57,12 @@ const fakePlugin =
             setIsDefault: async (input: any[]) => input,
           }),
         };
+
+const readCsv = async (body: any) => {
+  const chunks: string[] = [];
+  for await (const chunk of body) chunks.push(String(chunk));
+  return chunks.join('');
+};
 
 const fakeCtx = (query: Record<string, unknown>) =>
   ({
@@ -188,9 +201,10 @@ describe('locale handling', () => {
   ])('%s passes locale as a param, not a filter', async (_label, method) => {
     const { strapi, calls } = spyStrapi();
 
-    await service({ strapi })[method](
+    const result = await service({ strapi })[method](
       fakeCtx({ uid: plainUid, locale: 'de', sortOrder: ['title'] })
     );
+    if (method === 'downloadCSV') await readCsv(result);
 
     expect(calls.findMany[0].locale).toBe('de');
     expect(calls.findMany[0].filters).not.toHaveProperty('locale');
@@ -370,12 +384,14 @@ describe('column set', () => {
   it('exports a column that is null in every row', async () => {
     const strapi = spyStrapi({ columns: ['title', 'subtitle'] }, [{ title: 'Hi' }]);
 
-    const csv = await service({ strapi }).downloadCSV(
-      fakeCtx({ uid: columnUid, sortOrder: ['title', 'subtitle'] })
+    const csv = await readCsv(
+      await service({ strapi }).downloadCSV(
+        fakeCtx({ uid: columnUid, sortOrder: ['title', 'subtitle'] })
+      )
     );
 
-    expect(csv.toString()).toContain('Title,Subtitle');
-    expect(csv.toString()).toContain('Hi,');
+    expect(csv).toContain('Title,Subtitle');
+    expect(csv).toContain('Hi,');
   });
 });
 
@@ -424,19 +440,21 @@ describe('admin permissions', () => {
   });
 
   it('omits fields the role may not read', async () => {
-    const strapi = makeStrapi(fakePlugin({ sanitize: ({ secret, ...rest }: any) => rest }));
+    const strapi = makeStrapi(fakePlugin({ allowFields: ['title', 'createdAt'] }));
 
-    const csv = await service({ strapi }).downloadCSV(
-      fakeCtx({ uid: permUid, sortOrder: ['title', 'secret'] })
+    const csv = await readCsv(
+      await service({ strapi }).downloadCSV(
+        fakeCtx({ uid: permUid, sortOrder: ['title', 'secret'] })
+      )
     );
 
-    expect(csv.toString()).toContain('Title');
-    expect(csv.toString()).not.toContain('Secret');
-    expect(csv.toString()).not.toContain('shh');
+    expect(csv).toContain('Title');
+    expect(csv).not.toContain('Secret');
+    expect(csv).not.toContain('shh');
   });
 
   it('omits unreadable fields from the table columns too', async () => {
-    const strapi = makeStrapi(fakePlugin({ sanitize: ({ secret, ...rest }: any) => rest }));
+    const strapi = makeStrapi(fakePlugin({ allowFields: ['title', 'createdAt'] }));
 
     const result = await service({ strapi }).getTableData(fakeCtx({ uid: permUid }));
 
@@ -444,9 +462,13 @@ describe('admin permissions', () => {
   });
 
   it('keeps createdAt for a role with field restrictions', async () => {
-    const strapi = makeStrapi(fakePlugin({ sanitize: ({ secret, ...rest }: any) => rest }), [
-      { title: 'Hi', createdAt: '2024-01-15T10:00:00.000Z', secret: 'shh' },
-    ]);
+    const strapi = makeStrapi(
+      fakePlugin({
+        allowFields: ['title', 'createdAt'],
+        sanitize: ({ secret, ...rest }: any) => rest,
+      }),
+      [{ title: 'Hi', createdAt: '2024-01-15T10:00:00.000Z', secret: 'shh' }]
+    );
 
     const result = await service({ strapi }).getTableData(fakeCtx({ uid: permUid }));
 
@@ -503,5 +525,141 @@ describe('dropdown content type matching', () => {
     const result = await service({ strapi }).getDropdownValues(fakeCtx({}));
 
     expect(result.contentTypes).toEqual([]);
+  });
+});
+
+describe('streamed export', () => {
+  const streamUid = 'api::article.article';
+
+  const spyStrapi = (total: number, pluginConfig: Record<string, unknown> = {}) => {
+    const rows = Array.from({ length: total }, (_, i) => ({ title: `row${i}` }));
+    const calls: { limit: number; offset: number }[] = [];
+
+    const strapi = {
+      config: {
+        get: () => ({ config: { [streamUid]: { columns: ['title'] } }, ...pluginConfig }),
+      },
+      contentTypes: {
+        [streamUid]: { kind: 'collectionType', attributes: { title: { type: 'string' } } },
+      },
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+      documents: () => ({
+        findMany: async ({ limit, offset }: any) => {
+          calls.push({ limit, offset });
+          return rows.slice(offset, offset + limit);
+        },
+        count: async () => rows.length,
+      }),
+      plugin: fakePlugin(),
+    } as unknown as Core.Strapi;
+
+    return { strapi, calls };
+  };
+
+  const download = (strapi: Core.Strapi) =>
+    service({ strapi }).downloadCSV(fakeCtx({ uid: streamUid, sortOrder: ['title'] }));
+
+  it('fetches in batches instead of loading everything at once', async () => {
+    const { strapi, calls } = spyStrapi(12, { batchSize: 5 });
+
+    await readCsv(await download(strapi));
+
+    expect(calls).toEqual([
+      { limit: 5, offset: 0 },
+      { limit: 5, offset: 5 },
+      { limit: 5, offset: 10 },
+    ]);
+  });
+
+  it('exports every row across batches, with one header', async () => {
+    const { strapi } = spyStrapi(12, { batchSize: 5 });
+
+    const csv = await readCsv(await download(strapi));
+    const lines = csv.replace(/^﻿/, '').trim().split('\r\n');
+
+    expect(lines[0]).toBe('Title');
+    expect(lines).toHaveLength(13);
+    expect(lines[lines.length - 1]).toBe('row11');
+  });
+
+  it('stops at maxRows', async () => {
+    const { strapi } = spyStrapi(100, { batchSize: 10, maxRows: 25 });
+
+    const csv = await readCsv(await download(strapi));
+
+    expect(csv.trim().split('\r\n')).toHaveLength(26);
+  });
+
+  it('still emits a header when the collection is empty', async () => {
+    const { strapi } = spyStrapi(0);
+
+    const csv = await readCsv(await download(strapi));
+
+    expect(csv.replace(/^﻿/, '')).toBe('Title\r\n');
+  });
+
+  it('returns a stream rather than a buffered body', async () => {
+    const { strapi } = spyStrapi(3);
+
+    const body = await download(strapi);
+
+    expect(typeof (body as any).pipe).toBe('function');
+  });
+});
+
+describe('column set does not depend on the data', () => {
+  const colUid = 'api::article.article';
+
+  const makeStrapi = (rows: any[], allowFields?: string[]) =>
+    ({
+      config: {
+        get: () => ({
+          config: { [colUid]: { columns: ['title', 'secret'] } },
+          batchSize: 1,
+        }),
+      },
+      contentTypes: {
+        [colUid]: {
+          kind: 'collectionType',
+          attributes: { title: { type: 'string' }, secret: { type: 'string' } },
+        },
+      },
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+      documents: () => ({
+        findMany: async ({ limit, offset }: any) => rows.slice(offset, offset + limit),
+        count: async () => rows.length,
+      }),
+      plugin: fakePlugin({
+        allowFields,
+        sanitize: ({ secret, ...rest }: any) => (allowFields ? rest : { secret, ...rest }),
+      }),
+    }) as unknown as Core.Strapi;
+
+  it('omits a restricted field even when it is absent from the first batch', async () => {
+    // The restricted field only appears in the second batch. Deciding the header from batch one
+    // would have listed it.
+    const rows = [{ title: 'a' }, { title: 'b', secret: 'shh' }];
+    const strapi = makeStrapi(rows, ['title']);
+
+    const csv = await readCsv(
+      await service({ strapi }).downloadCSV(
+        fakeCtx({ uid: colUid, sortOrder: ['title', 'secret'] })
+      )
+    );
+
+    expect(csv).not.toContain('Secret');
+    expect(csv).not.toContain('shh');
+  });
+
+  it('keeps a permitted field that no row happens to populate', async () => {
+    const strapi = makeStrapi([{ title: 'a' }]);
+
+    const csv = await readCsv(
+      await service({ strapi }).downloadCSV(
+        fakeCtx({ uid: colUid, sortOrder: ['title', 'secret'] })
+      )
+    );
+
+    expect(csv).toContain('Title,Secret');
   });
 });

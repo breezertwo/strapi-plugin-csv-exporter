@@ -1,71 +1,87 @@
 import { describe, expect, it } from 'vitest';
 
-import { readableColumns, sanitizeRows, type PermissionChecker } from './permissions';
+import { permittedColumns, sanitizeRows, type PermissionChecker } from './permissions';
 
 const attributes = {
   title: { type: 'string' },
   createdAt: { type: 'datetime' },
+  email: { type: 'string' },
   secret: { type: 'string', private: true },
   password: { type: 'password' },
 };
 
-const checker = (strip: string[] = []): PermissionChecker => ({
+/** Mirrors Strapi: `allow` is the role's field list, plus the always-permitted timestamps. */
+const checker = (allow?: string[]): PermissionChecker => ({
   cannot: { read: () => false },
-  sanitizeOutput: async (row) =>
-    Object.fromEntries(Object.entries(row).filter(([key]) => !strip.includes(key))),
+  sanitizeOutput: async (row) => row,
+  sanitizeQuery: async ({ fields }) => ({
+    fields: allow
+      ? fields.filter((f: string) => [...allow, 'createdAt', 'updatedAt'].includes(f))
+      : fields,
+  }),
 });
 
 describe('sanitizeRows', () => {
-  it('reports the keys sanitizeOutput stripped', async () => {
-    const { rows, removed } = await sanitizeRows(checker(['email']), [
-      { title: 'Hi', email: 'a@b.c' },
-    ]);
+  it('sanitizes every row', async () => {
+    const stripping: PermissionChecker = {
+      ...checker(),
+      sanitizeOutput: async ({ email, ...rest }) => rest,
+    };
 
-    expect(rows).toEqual([{ title: 'Hi' }]);
-    expect([...removed]).toEqual(['email']);
-  });
-
-  it('collects removals across every row', async () => {
-    const { removed } = await sanitizeRows(checker(['email']), [
+    await expect(sanitizeRows(stripping, [{ title: 'Hi', email: 'a@b.c' }])).resolves.toEqual([
       { title: 'Hi' },
-      { email: 'a@b.c' },
     ]);
-
-    expect([...removed]).toEqual(['email']);
-  });
-
-  it('reports nothing for an unrestricted role', async () => {
-    const { removed } = await sanitizeRows(checker(), [{ title: 'Hi', createdAt: 'x' }]);
-
-    expect(removed.size).toBe(0);
   });
 });
 
-describe('readableColumns', () => {
-  it('keeps everything when nothing was stripped', () => {
-    expect(readableColumns(['title', 'createdAt'], new Set(), attributes)).toEqual([
+describe('permittedColumns', () => {
+  it('keeps everything for a role without field restrictions', async () => {
+    await expect(
+      permittedColumns(checker(), ['title', 'email', 'createdAt'], attributes)
+    ).resolves.toEqual(['title', 'email', 'createdAt']);
+  });
+
+  it('drops fields outside the role field list', async () => {
+    await expect(
+      permittedColumns(checker(['title']), ['title', 'email'], attributes)
+    ).resolves.toEqual(['title']);
+  });
+
+  it('keeps createdAt, which Strapi permits regardless of the field list', async () => {
+    await expect(
+      permittedColumns(checker(['title']), ['title', 'createdAt'], attributes)
+    ).resolves.toEqual(['title', 'createdAt']);
+  });
+
+  it('drops private and password attributes', async () => {
+    await expect(
+      permittedColumns(checker(), ['title', 'secret', 'password'], attributes)
+    ).resolves.toEqual(['title']);
+  });
+
+  it('keeps names that are not attributes, such as custom columns', async () => {
+    await expect(
+      permittedColumns(checker(['title']), ['title', 'customThing'], attributes)
+    ).resolves.toEqual(['title', 'customThing']);
+  });
+
+  it('does not need any data, so an empty collection yields the same columns', async () => {
+    const columns = await permittedColumns(checker(['title']), ['title', 'email'], attributes);
+
+    expect(columns).toEqual(['title']);
+  });
+
+  it('keeps the columns if sanitizeQuery fails', async () => {
+    const failing: PermissionChecker = {
+      ...checker(),
+      sanitizeQuery: async () => {
+        throw new Error('boom');
+      },
+    };
+
+    await expect(permittedColumns(failing, ['title', 'email'], attributes)).resolves.toEqual([
       'title',
-      'createdAt',
+      'email',
     ]);
-  });
-
-  it('keeps createdAt, which Strapi permits regardless of the role field list', () => {
-    expect(readableColumns(['title', 'createdAt'], new Set(['email']), attributes)).toContain(
-      'createdAt'
-    );
-  });
-
-  it('drops columns that were stripped', () => {
-    expect(readableColumns(['title', 'email'], new Set(['email']), attributes)).toEqual(['title']);
-  });
-
-  it('drops private and password attributes even when no row exposed them', () => {
-    expect(readableColumns(['title', 'secret', 'password'], new Set(), attributes)).toEqual([
-      'title',
-    ]);
-  });
-
-  it('keeps names that are not attributes, such as custom columns', () => {
-    expect(readableColumns(['customThing'], new Set(), attributes)).toEqual(['customThing']);
   });
 });

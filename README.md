@@ -103,7 +103,7 @@ module.exports = (): CSVExporterPlugin => ({
 
     },
   },
-  // Optional: Fields to globally ignore in exports 
+  // Optional: Fields to globally ignore in exports
   ignore: [], // default
   // Optional: Global date formatting for all fields that are a valid ISO Date
   dateFormat: 'dd.MM.yyyy HH:mm', // default
@@ -118,9 +118,12 @@ module.exports = (): CSVExporterPlugin => ({
   // Plain numbers (-5, +3.2) are left untouched
   escapeFormulas: true, // default
   // Optional: Prefix the file with a UTF-8 byte order mark, to not assume
-  // local ANSI code page and mangles umlauts, accents and other non-ASCII characters.
-  // Disable if this causes issues with your consumer.
+  // local ANSI code page and mangle umlauts, accents and other non-ASCII characters
   bom: true, // default
+  // Optional: How many rows are fetched per database round trip while exporting
+  batchSize: 500, // default
+  // Optional: Hard cap on exported rows. Unlimited when not set
+  maxRows: undefined, // default
 });
 ```
 

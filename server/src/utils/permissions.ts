@@ -14,6 +14,7 @@ export const permissions = [
 export interface PermissionChecker {
   cannot: { read: () => boolean };
   sanitizeOutput: (data: Record<string, any>) => Promise<Record<string, any>>;
+  sanitizeQuery: (query: Record<string, any>) => Promise<Record<string, any>>;
 }
 
 const createChecker = (
@@ -61,40 +62,41 @@ export const assertCanReadContentType = (
   return checker;
 };
 
-export interface SanitizedRows {
-  rows: Record<string, any>[];
-  removed: Set<string>;
-}
-
 export const sanitizeRows = async (
   checker: PermissionChecker,
   rows: Record<string, any>[]
-): Promise<SanitizedRows> => {
-  const sanitized = await Promise.all(rows.map((row) => checker.sanitizeOutput(row)));
-  const removed = new Set<string>();
+): Promise<Record<string, any>[]> => Promise.all(rows.map((row) => checker.sanitizeOutput(row)));
 
-  rows.forEach((row, index) => {
-    Object.keys(row).forEach((key) => {
-      if (!(key in sanitized[index])) {
-        removed.add(key);
-      }
-    });
-  });
-
-  return { rows: sanitized, removed };
-};
-
-export const readableColumns = (
+/**
+ * Asks Strapi which of these columns the role may read, without looking at any data, so the
+ * answer is the same for an empty collection as for a large one. Names that are not attributes
+ * of the content type - custom columns above all - are always kept.
+ */
+export const permittedColumns = async (
+  checker: PermissionChecker,
   columns: string[],
-  removed: Set<string>,
   attributes: Record<string, any> = {}
-): string[] =>
-  columns.filter((column) => {
+): Promise<string[]> => {
+  const candidates = columns.filter((column) => {
     const attribute = attributes[column];
 
-    if (attribute?.private || attribute?.type === 'password') {
-      return false;
-    }
-
-    return !removed.has(column);
+    return !attribute?.private && attribute?.type !== 'password';
   });
+
+  const fields = candidates.filter((column) => attributes[column]);
+
+  if (fields.length === 0) {
+    return candidates;
+  }
+
+  let allowed: Set<string>;
+
+  try {
+    const sanitized = await checker.sanitizeQuery({ fields });
+    allowed = new Set(Array.isArray(sanitized?.fields) ? sanitized.fields : fields);
+  } catch {
+    allowed = new Set(fields);
+  }
+
+  return candidates.filter((column) => !attributes[column] || allowed.has(column));
+};
