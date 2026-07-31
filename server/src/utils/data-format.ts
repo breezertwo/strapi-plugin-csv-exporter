@@ -30,8 +30,14 @@ type AtLeastOne<T> = {
 
 export interface CSVExporterPlugin {
   dateFormat?: string;
+  dateOnlyFormat?: string;
+  timeFormat?: string;
   timeZone?: string;
   ignore?: string[];
+  escapeFormulas?: boolean;
+  bom?: boolean;
+  batchSize?: number;
+  maxRows?: number;
   config: AtLeastOne<Record<UID.ContentType, ContentTypeConfig>>;
 }
 
@@ -59,7 +65,7 @@ export const restructureObject = async (
   offset?: number
 ) => {
   const filters = {
-    ...(filter || {}),
+    ...filter,
   };
 
   const restructuredObject = {
@@ -76,28 +82,67 @@ export const restructureObject = async (
   return restructuredObject;
 };
 
+const relationColumns = (relations: { [key: string]: RelationConfig } = {}): string[] =>
+  Object.entries(relations).flatMap(([key, relation]) => [
+    key,
+    ...relationColumns(relation.relation),
+  ]);
+
+export const expectedColumns = (config: ContentTypeConfig, ignore: string[] = []): string[] => {
+  const columns = [
+    ...(config.columns ?? []).filter((column) => !ignore.includes(column)),
+    ...relationColumns(config.relation),
+    ...Object.keys(config.customColumns ?? {}),
+  ];
+
+  return [...new Set(columns)];
+};
+
 export const restructureData = async (
   data: any,
   config: ContentTypeConfig,
   uid: UID.ContentType,
-  options: { dateFormat?: string; timeZone?: string; ignore?: string[] }
+  options: {
+    dateFormat?: string;
+    dateOnlyFormat?: string;
+    timeFormat?: string;
+    timeZone?: string;
+    ignore?: string[];
+  }
 ): Promise<Record<string, string>[]> => {
   return data.map((item: Record<string, any>) => {
     const restructuredItem = {};
 
     // Process regular columns
     // filter out documentId - for some reason it gets added somewhere and i can not fathom where
-    for (const key of config.columns.filter((c) => !options.ignore.includes(c))) {
+    const ignore = options.ignore ?? [];
+
+    for (const key of config.columns.filter((c) => !ignore.includes(c))) {
       if (key in item) {
         if (isISODateString(item[key])) {
           restructuredItem[key] = format(
-            new TZDate(item[key], options.timeZone ?? 'Europe/Berlin'),
+            new TZDate(item[key], options.timeZone ?? '+00:00'),
             options.dateFormat ?? 'dd.MM.yyyy HH:mm'
           );
-        } else if (Array.isArray(item[key]) && item[key].length > 0) {
-          restructuredItem[key] = item[key]
-            .filter((e) => typeof e === 'string' || typeof e === 'number' || typeof e === 'boolean')
-            .join(', ');
+        } else if (isISODateOnlyString(item[key])) {
+          restructuredItem[key] = format(
+            parseISO(item[key]),
+            options.dateOnlyFormat ?? 'dd.MM.yyyy'
+          );
+        } else if (isISOTimeOnlyString(item[key])) {
+          restructuredItem[key] = format(
+            parseISO(`1970-01-01T${item[key]}`),
+            options.timeFormat ?? 'HH:mm'
+          );
+        } else if (Array.isArray(item[key])) {
+          const entries = item[key];
+          restructuredItem[key] = entries.every(
+            (e) => typeof e === 'string' || typeof e === 'number' || typeof e === 'boolean'
+          )
+            ? entries.join(', ')
+            : JSON.stringify(entries);
+        } else if (isPlainObject(item[key])) {
+          restructuredItem[key] = JSON.stringify(item[key]);
         } else {
           restructuredItem[key] = item[key];
         }
@@ -205,11 +250,16 @@ const parseNestedRelations = (
   }
 };
 
-const isISODateString = (value: any) => {
-  if (typeof value !== 'string') return false;
+const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_TIME = /^\d{2}:\d{2}(:\d{2})?(\.\d{1,3})?$/;
 
-  const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
-  if (!isoDateRegex.test(value)) return false;
+const matchesIso = (value: any, pattern: RegExp, prefix = '') =>
+  typeof value === 'string' && pattern.test(value) && isValid(parseISO(`${prefix}${value}`));
 
-  return isValid(parseISO(value));
-};
+const isISODateString = (value: any) => matchesIso(value, ISO_DATE_TIME);
+const isISODateOnlyString = (value: any) => matchesIso(value, ISO_DATE);
+const isISOTimeOnlyString = (value: any) => matchesIso(value, ISO_TIME, '1970-01-01T');
+
+const isPlainObject = (value: any) =>
+  value !== null && typeof value === 'object' && !(value instanceof Date);

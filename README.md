@@ -22,6 +22,7 @@ A highly configurable Strapi plugin that allows you to export your content types
 - **Drag & Drop Column Reordering**: Reorder columns for both table display and CSV output in the Admin Panel
 - **i18n Support**: Export your content types based on your configured locales
 - **Permission Management**: Select which users can use the plugin with a specific permission
+- **Respects Admin Permissions**: Users can only export the collections and fields their role is allowed to read
 - **Custom Filtering**: Apply optional filters as you would do with Strapi Document API
 - **TypeScript Support**: Write the configuration file in TypeScript for better type safety
 
@@ -102,19 +103,43 @@ module.exports = (): CSVExporterPlugin => ({
 
     },
   },
-
-  // Optional: Global date formatting for all fields that are a valid ISO Date
-  dateFormat: 'dd/MM/yyyy HH:mm', // default
-  // Optional: Set a *global* IANA time zone identifier or UTC offset (e.g. 'Europe/Berlin' or '+02:00'). Per default, the current timezone of the client will be used to format timestamps. If no timezone can be determined, default will be UTC+00:00)
-  timeZone: '+00:00', // default
   // Optional: Fields to globally ignore in exports
   ignore: [], // default
+  // Optional: Global date formatting for all fields that are a valid ISO Date
+  dateFormat: 'dd.MM.yyyy HH:mm', // default
+  // Optional: Formatting for date-only fields
+  dateOnlyFormat: 'dd.MM.yyyy', // default
+  // Optional: Formatting for time-only fields
+  timeFormat: 'HH:mm', // default
+  // Optional: Set a *global* IANA time zone identifier or UTC offset (e.g. 'Europe/Berlin' or '+02:00'). Per default, the current timezone of the client will be used to format timestamps. If no timezone can be determined, default will be UTC+00:00)
+  timeZone: '+00:00', // default
+  // Optional: Protect against CSV injection by prefixing values that a spreadsheet would
+  // evaluate as a formula (values starting with =, +, -, @, tab or CR) with a single quote.
+  // Plain numbers (-5, +3.2) are left untouched
+  escapeFormulas: true, // default
+  // Optional: Prefix the file with a UTF-8 byte order mark, to not assume
+  // local ANSI code page and mangle umlauts, accents and other non-ASCII characters
+  bom: true, // default
+  // Optional: How many rows are fetched per database round trip while exporting
+  batchSize: 500, // default
+  // Optional: Hard cap on exported rows. Unlimited when not set
+  maxRows: undefined, // default
 });
 ```
 
 4. **Build and restart** your Strapi application
 
 5. **Add Permission** Enable your users to use the plugin in the permissions settings
+
+## 🔒 Permissions
+
+For a user to export a collection set up the following permissions:
+
+1. The **CSV Exporter → Usage** permission, which grants access to the plugin itself.
+2. The regular **Content Manager read** permission for that collection.
+
+The export is scoped to what the user is already allowed to see in the Content Manager:
+collections they cannot read are hidden, and any field their role may not read is left out entirely.
 
 ## 🖥️ Usage
 

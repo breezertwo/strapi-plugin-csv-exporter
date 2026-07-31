@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth, useFetchClient } from '@strapi/strapi/admin';
+import { useEffect, useState } from 'react';
+import { useFetchClient } from '@strapi/strapi/admin';
 import { format } from 'date-fns';
 import {
   Status,
@@ -16,6 +16,7 @@ import { ColumnSorter } from '../components/ColumnSorter';
 type DropDownValue = {
   label: string;
   value: string;
+  localized?: boolean;
 };
 
 interface DropDownValues {
@@ -23,9 +24,18 @@ interface DropDownValues {
   contentTypes: DropDownValue[];
 }
 
+interface DropDownValuesResponse extends DropDownValues {
+  defaultLocale?: string;
+}
+
+interface TableDataResponse {
+  columns?: string[];
+  data?: Array<Record<string, string>>;
+  count: number;
+}
+
 const HomePage = () => {
   const { get } = useFetchClient();
-  const token = useAuth('CSVExporterHomePage', (state) => state.token);
 
   const [dropDownData, setDropDownData] = useState<DropDownValues>({
     locales: [],
@@ -42,6 +52,10 @@ const HomePage = () => {
   const [fileName, setFileName] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const showLocales =
+    dropDownData.locales.length > 0 &&
+    Boolean(dropDownData.contentTypes.find((type) => type.value === selectedValue)?.localized);
   const [totalRows, setTotalRows] = useState(0);
   const [perPage, setPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,12 +63,12 @@ const HomePage = () => {
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
-        const { data } = await get('/csv-exporter/dropdownvalues');
+        const { data } = await get<DropDownValuesResponse>('/csv-exporter/dropdownvalues');
         setDropDownData(data);
 
         if (data.defaultLocale) {
           setSelectedLocale(data.defaultLocale);
-        } else if (data.locales?.length > 0) {
+        } else if (data.locales?.length) {
           setSelectedLocale(data.locales[0].value);
         }
 
@@ -102,44 +116,33 @@ const HomePage = () => {
   };
 
   const handleDownloadCSV = async () => {
-    if (!selectedValue) return;
+    if (!selectedValue || sortedColumns.length === 0 || isDownloading) return;
+
+    setIsDownloading(true);
 
     try {
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      // Build custom fetch request as strapi get always processes with json and arraybuffer is needed here.
-      const backendURL = (window.strapi as any).backendURL ?? window.location.origin;
-      const url = new URL(`${backendURL}/csv-exporter/download`);
-      url.searchParams.append('uid', selectedValue);
-      url.searchParams.append('locale', selectedLocale);
-      url.searchParams.append('timezone', timeZone);
-      sortedColumns.forEach((column, index) => {
-        url.searchParams.append(`sortOrder[${index + 1}]`, column);
-      });
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const { data: blob } = await get('/csv-exporter/download', {
+        responseType: 'blob',
+        params: {
+          uid: selectedValue,
+          locale: selectedLocale,
+          timezone: timeZone,
+          sortOrder: sortedColumns,
         },
       });
-
-      if (!response.ok) {
-        throw new Error('Fetch request failed with status code ' + response.status);
-      }
 
       const formattedDate = format(new Date(), 'dd_MM_yyyy_HH_mm');
       const downloadFileName = `${selectedValue?.split('.')[1]}-export-${formattedDate}.csv`;
       setFileName(downloadFileName);
 
-      const arrayBuffer = await response.arrayBuffer();
-      const blob = new Blob([arrayBuffer], {
-        type: 'text/csv',
-      });
+      const href = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
+      link.href = href;
       link.download = downloadFileName;
       link.click();
+      window.URL.revokeObjectURL(href);
 
       setIsSuccessMessage(true);
       setTimeout(() => {
@@ -152,7 +155,8 @@ const HomePage = () => {
       }, 8000);
 
       console.error('Error downloading csv file:', error);
-      return;
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -171,7 +175,7 @@ const HomePage = () => {
         const limit = newPerPage;
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-        const { data: table } = await get(
+        const { data: table } = await get<TableDataResponse>(
           `/csv-exporter/tabledata?uid=${value}&limit=${limit}&offset=${offset}&locale=${locale || selectedLocale}&timezone=${timeZone}`
         );
 
@@ -220,7 +224,7 @@ const HomePage = () => {
         0
       );
 
-      if (table.data) {
+      if (table?.data) {
         setTableData(table.data);
         setTotalRows(table.count);
       }
@@ -267,37 +271,55 @@ const HomePage = () => {
             {isLoading && <Loader small />}
           </div>
         </Flex>
-        <Flex gap={2} direction="column" marginTop={2} alignItems="flex-start">
-          <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
-            <SingleSelect
-              id="locales"
-              value={selectedLocale || ''}
-              onChange={(value) => {
-                handleLocaleChange(value.toString());
-              }}
-              size="M"
-              placeholder="Select locale"
-            >
-              {dropDownData.locales.map((item) => (
-                <SingleSelectOption key={item.value} value={item.value}>
-                  {item.label}
-                </SingleSelectOption>
-              ))}
-            </SingleSelect>
-          </div>
-        </Flex>
+        {showLocales && (
+          <Flex gap={2} direction="column" marginTop={2} alignItems="flex-start">
+            <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
+              <SingleSelect
+                id="locales"
+                value={selectedLocale || ''}
+                onChange={(value) => {
+                  handleLocaleChange(value.toString());
+                }}
+                size="M"
+                placeholder="Select locale"
+              >
+                {dropDownData.locales.map((item) => (
+                  <SingleSelectOption key={item.value} value={item.value}>
+                    {item.label}
+                  </SingleSelectOption>
+                ))}
+              </SingleSelect>
+            </div>
+          </Flex>
+        )}
       </Flex>
       {selectedValue && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <Button
-            onClick={handleDownloadCSV}
-            size="L"
-            style={{
-              width: '300px',
-            }}
-          >
-            Download
-          </Button>
+          <Flex gap={3} alignItems="center">
+            <Button
+              onClick={handleDownloadCSV}
+              disabled={sortedColumns.length === 0 || isDownloading}
+              loading={isDownloading}
+              size="L"
+              style={{
+                width: '300px',
+              }}
+            >
+              {isDownloading ? 'Preparing export…' : 'Download'}
+            </Button>
+            {sortedColumns.length > 0 && (
+              <Typography variant="omega" textColor="neutral600">
+                {totalRows === 1 ? '1 row' : `${totalRows.toLocaleString()} rows`} ·{' '}
+                {sortedColumns.length === 1 ? '1 column' : `${sortedColumns.length} columns`}
+              </Typography>
+            )}
+          </Flex>
+
+          {sortedColumns.length === 0 && (
+            <Status variant="warning">
+              <Typography>Select at least one column to export.</Typography>
+            </Status>
+          )}
 
           {isSuccessMessage && (
             <Status variant="success">
