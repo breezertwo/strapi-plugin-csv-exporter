@@ -114,10 +114,15 @@ export const restructureData = async (
             new TZDate(item[key], options.timeZone ?? "+00:00"),
             options.dateFormat ?? "dd.MM.yyyy HH:mm",
           );
-        } else if (Array.isArray(item[key]) && item[key].length > 0) {
-          restructuredItem[key] = item[key]
-            .filter((e) => typeof e === "string" || typeof e === "number" || typeof e === "boolean")
-            .join(", ");
+        } else if (Array.isArray(item[key])) {
+          const entries = item[key];
+          restructuredItem[key] = entries.every(
+            (e) => typeof e === "string" || typeof e === "number" || typeof e === "boolean",
+          )
+            ? entries.join(", ")
+            : JSON.stringify(entries);
+        } else if (isPlainObject(item[key])) {
+          restructuredItem[key] = JSON.stringify(item[key]);
         } else {
           restructuredItem[key] = item[key];
         }
@@ -225,11 +230,10 @@ const parseNestedRelations = (
   }
 };
 
-const isISODateString = (value: any) => {
-  if (typeof value !== "string") return false;
+const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
 
-  const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
-  if (!isoDateRegex.test(value)) return false;
+const isISODateString = (value: any) =>
+  typeof value === "string" && ISO_DATE_TIME.test(value) && isValid(parseISO(value));
 
-  return isValid(parseISO(value));
-};
+const isPlainObject = (value: any) =>
+  value !== null && typeof value === "object" && !(value instanceof Date);
