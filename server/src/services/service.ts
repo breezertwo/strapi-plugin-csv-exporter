@@ -9,6 +9,7 @@ import {
   validateFilter,
   getDefaultLocale,
   getLocaleOptions,
+  isLocalizedContentType,
   getPluginConfig,
   assertExportableUid,
   assertCanReadContentType,
@@ -39,6 +40,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         .map((uid) => ({
           label: config[uid]?.dropdownLabel ?? strapi.contentTypes[uid]?.info?.displayName ?? uid,
           value: uid,
+          localized: isLocalizedContentType(strapi, uid),
         }));
 
       dropDownValues.sort((a, b) => a.label.localeCompare(b.label));

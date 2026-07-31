@@ -20,6 +20,19 @@ const getLocalesService = (strapi: Core.Strapi): any | null => {
   }
 };
 
+export const isLocalizedContentType = (strapi: Core.Strapi, uid: string): boolean => {
+  try {
+    return Boolean(
+      strapi
+        .plugin('i18n')
+        ?.service('content-types')
+        ?.isLocalizedContentType(strapi.contentTypes[uid])
+    );
+  } catch {
+    return false;
+  }
+};
+
 export const findLocales = async (strapi: Core.Strapi): Promise<any[]> => {
   const localesService = getLocalesService(strapi);
 

@@ -136,7 +136,7 @@ describe('getDropdownValues without i18n', () => {
     const strapi = noI18nStrapi();
     const result = await service({ strapi }).getDropdownValues(fakeCtx({}));
 
-    expect(result.contentTypes).toEqual([{ label: 'Article', value: uid }]);
+    expect(result.contentTypes).toEqual([{ label: 'Article', value: uid, localized: false }]);
   });
 
   it('reports no locales instead of failing', async () => {
@@ -511,7 +511,9 @@ describe('dropdown content type matching', () => {
 
     const result = await service({ strapi }).getDropdownValues(fakeCtx({}));
 
-    expect(result.contentTypes).toEqual([{ label: 'Post', value: 'api::post.post' }]);
+    expect(result.contentTypes).toEqual([
+      { label: 'Post', value: 'api::post.post', localized: false },
+    ]);
   });
 
   it('skips a configured uid that is not a collection type', async () => {
@@ -661,5 +663,50 @@ describe('column set does not depend on the data', () => {
     );
 
     expect(csv).toContain('Title,Secret');
+  });
+});
+
+describe('localized flag in the dropdown', () => {
+  const makeStrapi = (localized: boolean) =>
+    ({
+      config: { get: () => ({ config: { [uid]: { columns: ['title'] } } }) },
+      contentTypes: {
+        [uid]: { kind: 'collectionType', info: { displayName: 'Article' }, attributes: {} },
+      },
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+      plugin: (name: string) =>
+        name === 'content-manager'
+          ? fakePlugin()(name)
+          : {
+              service: (service: string) =>
+                service === 'content-types'
+                  ? { isLocalizedContentType: () => localized }
+                  : {
+                      find: async () => locales,
+                      getDefaultLocale: async () => 'en',
+                      setIsDefault: async (input: any[]) => input,
+                    },
+            },
+    }) as unknown as Core.Strapi;
+
+  it.each([[true], [false]])('reports localized: %p', async (localized) => {
+    const result = await service({ strapi: makeStrapi(localized) }).getDropdownValues(fakeCtx({}));
+
+    expect(result.contentTypes[0]).toMatchObject({ value: uid, localized });
+  });
+
+  it('reports localized: false when i18n is unavailable', async () => {
+    const strapi = {
+      config: { get: () => ({ config: { [uid]: { columns: ['title'] } } }) },
+      contentTypes: {
+        [uid]: { kind: 'collectionType', info: { displayName: 'Article' }, attributes: {} },
+      },
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+      plugin: (name: string) => (name === 'content-manager' ? fakePlugin()(name) : undefined),
+    } as unknown as Core.Strapi;
+
+    const result = await service({ strapi }).getDropdownValues(fakeCtx({}));
+
+    expect(result.contentTypes[0].localized).toBe(false);
   });
 });

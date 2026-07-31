@@ -16,6 +16,7 @@ import { ColumnSorter } from '../components/ColumnSorter';
 type DropDownValue = {
   label: string;
   value: string;
+  localized?: boolean;
 };
 
 interface DropDownValues {
@@ -51,6 +52,9 @@ const HomePage = () => {
   const [fileName, setFileName] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const showLocales =
+    dropDownData.locales.length > 0 &&
+    Boolean(dropDownData.contentTypes.find((type) => type.value === selectedValue)?.localized);
   const [totalRows, setTotalRows] = useState(0);
   const [perPage, setPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -263,25 +267,27 @@ const HomePage = () => {
             {isLoading && <Loader small />}
           </div>
         </Flex>
-        <Flex gap={2} direction="column" marginTop={2} alignItems="flex-start">
-          <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
-            <SingleSelect
-              id="locales"
-              value={selectedLocale || ''}
-              onChange={(value) => {
-                handleLocaleChange(value.toString());
-              }}
-              size="M"
-              placeholder="Select locale"
-            >
-              {dropDownData.locales.map((item) => (
-                <SingleSelectOption key={item.value} value={item.value}>
-                  {item.label}
-                </SingleSelectOption>
-              ))}
-            </SingleSelect>
-          </div>
-        </Flex>
+        {showLocales && (
+          <Flex gap={2} direction="column" marginTop={2} alignItems="flex-start">
+            <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
+              <SingleSelect
+                id="locales"
+                value={selectedLocale || ''}
+                onChange={(value) => {
+                  handleLocaleChange(value.toString());
+                }}
+                size="M"
+                placeholder="Select locale"
+              >
+                {dropDownData.locales.map((item) => (
+                  <SingleSelectOption key={item.value} value={item.value}>
+                    {item.label}
+                  </SingleSelectOption>
+                ))}
+              </SingleSelect>
+            </div>
+          </Flex>
+        )}
       </Flex>
       {selectedValue && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
