@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CSV_LINE_BREAK, toCSVRow, toCSVValue } from './csv';
+import { CSV_LINE_BREAK, orderColumns, toCSVRow, toCSVValue } from './csv';
 
 describe('toCSVValue', () => {
   describe('empty values', () => {
@@ -100,5 +100,42 @@ describe('toCSVRow', () => {
     expect(rows.join(CSV_LINE_BREAK) + CSV_LINE_BREAK).toBe(
       'Title,Body\r\n"a,b","multi\nline"\r\n\'=1+1,"say ""hi"""\r\n'
     );
+  });
+});
+
+describe('orderColumns', () => {
+  const available = ['title', 'createdAt', 'author'];
+
+  it('keeps every column in natural order when no order is given', () => {
+    expect(orderColumns(available, [])).toEqual(available);
+  });
+
+  it('applies the requested order', () => {
+    expect(orderColumns(available, ['author', 'title', 'createdAt'])).toEqual([
+      'author',
+      'title',
+      'createdAt',
+    ]);
+  });
+
+  it('drops columns that are not in the order', () => {
+    expect(orderColumns(available, ['title'])).toEqual(['title']);
+  });
+
+  it('ignores requested columns that do not exist', () => {
+    expect(orderColumns(available, ['title', 'ghost'])).toEqual(['title']);
+  });
+
+  it('matches exactly rather than by substring', () => {
+    // `['titleTag'].includes('title')` is false, but the old `sortOrder.includes` ran on a
+    // bare string when a single value was sent, which matched substrings.
+    expect(orderColumns(['title'], ['titleTag'])).toEqual([]);
+    expect(orderColumns(['titleTag'], ['title'])).toEqual([]);
+  });
+
+  it('handles more columns than the qs arrayLimit', () => {
+    const columns = Array.from({ length: 150 }, (_, i) => `col${i + 1}`);
+
+    expect(orderColumns([...columns].reverse(), columns)).toEqual(columns);
   });
 });
