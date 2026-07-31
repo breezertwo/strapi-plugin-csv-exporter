@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth, useFetchClient } from "@strapi/strapi/admin";
+import { useFetchClient } from "@strapi/strapi/admin";
 import { format } from "date-fns";
 import {
   Status,
@@ -35,7 +35,6 @@ interface TableDataResponse {
 
 const HomePage = () => {
   const { get } = useFetchClient();
-  const token = useAuth("CSVExporterHomePage", (state) => state.token);
 
   const [dropDownData, setDropDownData] = useState<DropDownValues>({
     locales: [],
@@ -117,39 +116,26 @@ const HomePage = () => {
     try {
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      // Build custom fetch request as strapi get always processes with json and arraybuffer is needed here.
-      const backendURL = (window.strapi as any).backendURL ?? window.location.origin;
-      const url = new URL(`${backendURL}/csv-exporter/download`);
-      url.searchParams.append("uid", selectedValue);
-      url.searchParams.append("locale", selectedLocale);
-      url.searchParams.append("timezone", timeZone);
-      sortedColumns.forEach((column, index) => {
-        url.searchParams.append(`sortOrder[${index + 1}]`, column);
-      });
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const { data: blob } = await get("/csv-exporter/download", {
+        responseType: "blob",
+        params: {
+          uid: selectedValue,
+          locale: selectedLocale,
+          timezone: timeZone,
+          sortOrder: sortedColumns,
         },
       });
-
-      if (!response.ok) {
-        throw new Error("Fetch request failed with status code " + response.status);
-      }
 
       const formattedDate = format(new Date(), "dd_MM_yyyy_HH_mm");
       const downloadFileName = `${selectedValue?.split(".")[1]}-export-${formattedDate}.csv`;
       setFileName(downloadFileName);
 
-      const arrayBuffer = await response.arrayBuffer();
-      const blob = new Blob([arrayBuffer], {
-        type: "text/csv",
-      });
+      const href = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(blob);
+      link.href = href;
       link.download = downloadFileName;
       link.click();
+      window.URL.revokeObjectURL(href);
 
       setIsSuccessMessage(true);
       setTimeout(() => {
