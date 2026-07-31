@@ -75,9 +75,6 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       const query = await restructureObject(config[uid], validatedFilters, limit, offset);
 
-      // `locale` is a document service param, never a filter: i18n adds a `locale` attribute to
-      // every content type and leaves it NULL on non-localized ones, so filtering on it by hand
-      // matched nothing there. As a param it is applied only where the content type is localized.
       const response = await strapi.documents(uid).findMany({
         ...query,
         locale,
@@ -95,7 +92,11 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         Object.keys(item).forEach((key) => allKeys.add(key));
       });
 
-      const count = await strapi.documents(uid).count({ locale });
+      const count = await strapi.documents(uid).count({
+        filters: query.filters,
+        status: query.status,
+        locale,
+      });
 
       return {
         columns: Array.from(allKeys),
