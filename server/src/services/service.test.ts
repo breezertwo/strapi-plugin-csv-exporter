@@ -29,7 +29,10 @@ const fakePlugin =
   ({
     canRead = true,
     sanitize = (row: any) => row,
-  }: { canRead?: boolean; sanitize?: (row: any) => any } = {}) =>
+  }: {
+    canRead?: boolean;
+    sanitize?: (row: any) => any;
+  } = {}) =>
   (name: string) =>
     name === 'content-manager'
       ? {
@@ -381,12 +384,18 @@ describe('admin permissions', () => {
 
   const makeStrapi = (pluginDouble: any, rows: any[] = [{ title: 'Hi', secret: 'shh' }]) =>
     ({
-      config: { get: () => ({ config: { [permUid]: { columns: ['title', 'secret'] } } }) },
+      config: {
+        get: () => ({ config: { [permUid]: { columns: ['title', 'createdAt', 'secret'] } } }),
+      },
       contentTypes: {
         [permUid]: {
           kind: 'collectionType',
           info: { displayName: 'Article' },
-          attributes: { title: { type: 'string' }, secret: { type: 'string' } },
+          attributes: {
+            title: { type: 'string' },
+            createdAt: { type: 'datetime' },
+            secret: { type: 'string' },
+          },
         },
       },
       log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
@@ -414,15 +423,43 @@ describe('admin permissions', () => {
     );
   });
 
-  it('exports only the fields the role may read', async () => {
+  it('omits fields the role may not read', async () => {
     const strapi = makeStrapi(fakePlugin({ sanitize: ({ secret, ...rest }: any) => rest }));
 
     const csv = await service({ strapi }).downloadCSV(
       fakeCtx({ uid: permUid, sortOrder: ['title', 'secret'] })
     );
 
-    expect(csv.toString()).toContain('Title,Secret');
+    expect(csv.toString()).toContain('Title');
+    expect(csv.toString()).not.toContain('Secret');
     expect(csv.toString()).not.toContain('shh');
+  });
+
+  it('omits unreadable fields from the table columns too', async () => {
+    const strapi = makeStrapi(fakePlugin({ sanitize: ({ secret, ...rest }: any) => rest }));
+
+    const result = await service({ strapi }).getTableData(fakeCtx({ uid: permUid }));
+
+    expect(result.columns).toEqual(['title', 'createdAt']);
+  });
+
+  it('keeps createdAt for a role with field restrictions', async () => {
+    const strapi = makeStrapi(fakePlugin({ sanitize: ({ secret, ...rest }: any) => rest }), [
+      { title: 'Hi', createdAt: '2024-01-15T10:00:00.000Z', secret: 'shh' },
+    ]);
+
+    const result = await service({ strapi }).getTableData(fakeCtx({ uid: permUid }));
+
+    expect(result.columns).toContain('createdAt');
+    expect(result.columns).not.toContain('secret');
+  });
+
+  it('keeps every column for a role without field restrictions', async () => {
+    const strapi = makeStrapi(fakePlugin());
+
+    const result = await service({ strapi }).getTableData(fakeCtx({ uid: permUid }));
+
+    expect(result.columns).toEqual(['title', 'createdAt', 'secret']);
   });
 
   it('hides unreadable content types from the dropdown', async () => {

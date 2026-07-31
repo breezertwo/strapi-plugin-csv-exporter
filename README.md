@@ -114,9 +114,9 @@ module.exports = (): CSVExporterPlugin => ({
   // evaluate as a formula (values starting with =, +, -, @, tab or CR) with a single quote.
   // Plain numbers (-5, +3.2) are left untouched
   escapeFormulas: true, // default
-  // Optional: Prefix the file with a UTF-8 byte order mark. Without it Excel assumes the
+  // Optional: Prefix the file with a UTF-8 byte order mark, to not assume
   // local ANSI code page and mangles umlauts, accents and other non-ASCII characters.
-  // Disable if your consumer chokes on the marker.
+  // Disable if this causes issues with your consumer.
   bom: true, // default
 });
 ```
@@ -127,15 +127,13 @@ module.exports = (): CSVExporterPlugin => ({
 
 ## 🔒 Permissions
 
-Two things must line up for a user to export a collection:
+For a user to export a collection set up the following permissions:
 
 1. The **CSV Exporter → Usage** permission, which grants access to the plugin itself.
 2. The regular **Content Manager read** permission for that collection.
 
 The export is scoped to what the user is already allowed to see in the Content Manager:
-collections they cannot read are hidden from the dropdown and rejected with a `403`, and any
-field their role may not read is left empty in the output — even if it is listed in `columns`.
-Granting only the Usage permission is therefore not enough.
+collections they cannot read are hidden, and any field their role may not read is left out entirely.
 
 ## 🖥️ Usage
 

@@ -12,6 +12,7 @@ import {
   assertCanReadContentType,
   canReadContentType,
   sanitizeRows,
+  readableColumns,
   isApplicationError,
   orderColumns,
   toCSVRow,
@@ -85,16 +86,13 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         locale,
       });
 
-      const data = await restructureData(
-        await sanitizeRows(permissionChecker, response),
-        config[uid],
-        uid,
-        {
-          dateFormat,
-          timeZone: configTimeZone ?? timeZone,
-          ignore,
-        }
-      );
+      const sanitized = await sanitizeRows(permissionChecker, response);
+
+      const data = await restructureData(sanitized.rows, config[uid], uid, {
+        dateFormat,
+        timeZone: configTimeZone ?? timeZone,
+        ignore,
+      });
 
       const count = await strapi.documents(uid).count({
         filters: query.filters,
@@ -103,7 +101,11 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       });
 
       return {
-        columns: expectedColumns(config[uid], ignore),
+        columns: readableColumns(
+          expectedColumns(config[uid], ignore),
+          sanitized.removed,
+          strapi.contentTypes[uid].attributes
+        ),
         data,
         count,
       };
@@ -143,18 +145,22 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         ...query,
         locale,
       });
-      const csvData = await restructureData(
-        await sanitizeRows(permissionChecker, response),
-        config[uid],
-        uid,
-        {
-          dateFormat,
-          ignore,
-          timeZone: configTimeZone ?? timeZone,
-        }
-      );
+      const sanitized = await sanitizeRows(permissionChecker, response);
 
-      const sortedArray = orderColumns(expectedColumns(config[uid], ignore), sortOrder);
+      const csvData = await restructureData(sanitized.rows, config[uid], uid, {
+        dateFormat,
+        ignore,
+        timeZone: configTimeZone ?? timeZone,
+      });
+
+      const sortedArray = orderColumns(
+        readableColumns(
+          expectedColumns(config[uid], ignore),
+          sanitized.removed,
+          strapi.contentTypes[uid].attributes
+        ),
+        sortOrder
+      );
 
       // Transform the headers to the desired format
       const headerRestructure = sortedArray.map((element) =>
