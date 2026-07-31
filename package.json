@@ -1,14 +1,29 @@
 {
+  "name": "strapi-plugin-csv-exporter",
   "version": "5.5.2",
+  "description": "A highly configurable plugin to export your Strapi content as CSV files",
   "keywords": [
-    "strapi",
-    "plugin",
     "csv",
-    "exporter",
     "csv exporter",
+    "exporter",
+    "plugin",
+    "strapi",
     "strapi-plugin-csv-exporter",
     "table export",
     "table exporter"
+  ],
+  "homepage": "https://github.com/breezertwo/strapi-plugin-csv-exporter#readme",
+  "bugs": {
+    "url": "https://github.com/breezertwo/strapi-plugin-csv-exporter/issues"
+  },
+  "license": "MIT",
+  "author": "breezertwo <andreas@heycare.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/breezertwo/strapi-plugin-csv-exporter.git"
+  },
+  "files": [
+    "dist"
   ],
   "type": "commonjs",
   "exports": {
@@ -28,62 +43,49 @@
       "default": "./dist/server/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "strapi-plugin build",
     "watch": "strapi-plugin watch",
     "watch:link": "strapi-plugin watch:link",
     "verify": "strapi-plugin verify",
-    "test:ts:front": "run -T tsc -p admin/tsconfig.json",
-    "test:ts:back": "run -T tsc -p server/tsconfig.json"
+    "test:ts:front": "tsc -p admin/tsconfig.json --noEmit",
+    "test:ts:back": "tsc -p server/tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@date-fns/tz": "1.4.1",
-    "@strapi/design-system": "2.1.2",
-    "@strapi/icons": "2.1.2",
-    "date-fns": "4.1.0"
+    "@date-fns/tz": "1.5.0",
+    "date-fns": "4.4.0"
   },
   "devDependencies": {
-    "@release-it/conventional-changelog": "10.0.5",
-    "@strapi/sdk-plugin": "^6.0.0",
-    "@strapi/strapi": "^5.36.1",
-    "@strapi/typescript-utils": "^5.36.1",
+    "@release-it/conventional-changelog": "12.0.0",
+    "@strapi/design-system": "2.2.3",
+    "@strapi/icons": "2.2.3",
+    "@strapi/sdk-plugin": "6.1.1",
+    "@strapi/strapi": "^5.51.0",
+    "@strapi/typescript-utils": "^5.51.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "prettier": "^3.8.1",
+    "prettier": "^3.9.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.30.1",
+    "react-intl": "6.6.2",
+    "react-router-dom": "^6.30.3",
+    "release-it": "^21.0.1",
     "styled-components": "^6.3.8",
-    "release-it": "^19.2.4",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
+    "@strapi/design-system": "^2.2.3",
+    "@strapi/icons": "^2.2.3",
     "@strapi/strapi": "^5",
     "react": "^18",
     "react-dom": "^18",
+    "react-intl": "^6.6.2",
     "react-router-dom": "^6",
     "styled-components": "^6"
-  },
-  "strapi": {
-    "kind": "plugin",
-    "name": "csv-exporter",
-    "displayName": "CSV Exporter",
-    "description": "A highly configurable plugin to export your Strapi content as CSV files"
-  },
-  "name": "strapi-plugin-csv-exporter",
-  "description": "A highly configurable plugin to export your Strapi content as CSV files",
-  "license": "MIT",
-  "author": "breezertwo <andreas@heycare.com>",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/breezertwo/strapi-plugin-csv-exporter.git"
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
   },
   "release-it": {
     "git": {
@@ -101,5 +103,11 @@
         "preset": "angular"
       }
     }
+  },
+  "strapi": {
+    "kind": "plugin",
+    "name": "csv-exporter",
+    "displayName": "CSV Exporter",
+    "description": "A highly configurable plugin to export your Strapi content as CSV files"
   }
 }
