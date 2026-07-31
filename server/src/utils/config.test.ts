@@ -158,14 +158,14 @@ describe('validatePluginConfig', () => {
   });
 });
 
-describe("bom option", () => {
-  const minimal = { config: { "api::article.article": { columns: ["title"] } } };
+describe('bom option', () => {
+  const minimal = { config: { 'api::article.article': { columns: ['title'] } } };
 
-  it("defaults to true so Excel reads UTF-8 correctly", () => {
+  it('defaults to true so Excel reads UTF-8 correctly', () => {
     expect(getPluginConfig(fakeStrapi(minimal)).bom).toBe(true);
   });
 
-  it("can be disabled", () => {
+  it('can be disabled', () => {
     expect(getPluginConfig(fakeStrapi({ ...minimal, bom: false })).bom).toBe(false);
   });
 });

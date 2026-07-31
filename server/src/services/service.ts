@@ -33,8 +33,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
             canReadContentType(strapi, ctx, uid)
         )
         .map((uid) => ({
-          label:
-            config[uid]?.dropdownLabel ?? strapi.contentTypes[uid]?.info?.displayName ?? uid,
+          label: config[uid]?.dropdownLabel ?? strapi.contentTypes[uid]?.info?.displayName ?? uid,
           value: uid,
         }));
 

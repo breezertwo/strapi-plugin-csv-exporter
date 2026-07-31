@@ -44,7 +44,7 @@ _Minimum Strapi Version needed: v5_
 
 ```javascript
 module.exports = {
-  "csv-exporter": {
+  'csv-exporter': {
     enabled: true,
   },
 };
@@ -103,7 +103,8 @@ module.exports = (): CSVExporterPlugin => ({
 
     },
   },
-
+  // Optional: Fields to globally ignore in exports 
+  ignore: [], // default
   // Optional: Global date formatting for all fields that are a valid ISO Date
   dateFormat: 'dd.MM.yyyy HH:mm', // default
   // Optional: Formatting for date-only fields
@@ -112,8 +113,6 @@ module.exports = (): CSVExporterPlugin => ({
   timeFormat: 'HH:mm', // default
   // Optional: Set a *global* IANA time zone identifier or UTC offset (e.g. 'Europe/Berlin' or '+02:00'). Per default, the current timezone of the client will be used to format timestamps. If no timezone can be determined, default will be UTC+00:00)
   timeZone: '+00:00', // default
-  // Optional: Fields to globally ignore in exports
-  ignore: [], // default
   // Optional: Protect against CSV injection by prefixing values that a spreadsheet would
   // evaluate as a formula (values starting with =, +, -, @, tab or CR) with a single quote.
   // Plain numbers (-5, +3.2) are left untouched

@@ -1,13 +1,13 @@
-import { errors } from "@strapi/utils";
-import type { Core, UID } from "@strapi/strapi";
-import type { Context } from "koa";
+import { errors } from '@strapi/utils';
+import type { Core, UID } from '@strapi/strapi';
+import type { Context } from 'koa';
 
 export const permissions = [
   {
-    section: "plugins",
-    pluginName: "csv-exporter",
-    displayName: "Usage",
-    uid: "usage",
+    section: 'plugins',
+    pluginName: 'csv-exporter',
+    displayName: 'Usage',
+    uid: 'usage',
   },
 ];
 
@@ -19,7 +19,7 @@ export interface PermissionChecker {
 const createChecker = (
   strapi: Core.Strapi,
   ctx: Context,
-  uid: UID.ContentType,
+  uid: UID.ContentType
 ): PermissionChecker | null => {
   const userAbility = ctx.state?.userAbility;
 
@@ -29,8 +29,8 @@ const createChecker = (
 
   try {
     return strapi
-      .plugin("content-manager")
-      ?.service("permission-checker")
+      .plugin('content-manager')
+      ?.service('permission-checker')
       ?.create({ userAbility, model: uid });
   } catch {
     return null;
@@ -40,7 +40,7 @@ const createChecker = (
 export const canReadContentType = (
   strapi: Core.Strapi,
   ctx: Context,
-  uid: UID.ContentType,
+  uid: UID.ContentType
 ): boolean => {
   const checker = createChecker(strapi, ctx, uid);
 
@@ -50,7 +50,7 @@ export const canReadContentType = (
 export const assertCanReadContentType = (
   strapi: Core.Strapi,
   ctx: Context,
-  uid: UID.ContentType,
+  uid: UID.ContentType
 ): PermissionChecker => {
   const checker = createChecker(strapi, ctx, uid);
 
@@ -68,7 +68,7 @@ export interface SanitizedRows {
 
 export const sanitizeRows = async (
   checker: PermissionChecker,
-  rows: Record<string, any>[],
+  rows: Record<string, any>[]
 ): Promise<SanitizedRows> => {
   const sanitized = await Promise.all(rows.map((row) => checker.sanitizeOutput(row)));
   const removed = new Set<string>();
@@ -87,12 +87,12 @@ export const sanitizeRows = async (
 export const readableColumns = (
   columns: string[],
   removed: Set<string>,
-  attributes: Record<string, any> = {},
+  attributes: Record<string, any> = {}
 ): string[] =>
   columns.filter((column) => {
     const attribute = attributes[column];
 
-    if (attribute?.private || attribute?.type === "password") {
+    if (attribute?.private || attribute?.type === 'password') {
       return false;
     }
 

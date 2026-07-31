@@ -1,6 +1,6 @@
-import { TZDate } from "@date-fns/tz";
-import type { UID } from "@strapi/strapi";
-import { parseISO, format, isValid } from "date-fns";
+import { TZDate } from '@date-fns/tz';
+import type { UID } from '@strapi/strapi';
+import { parseISO, format, isValid } from 'date-fns';
 
 export interface RelationConfig {
   column: string[];
@@ -16,7 +16,7 @@ export interface ContentTypeConfig {
   };
   dropdownLabel?: string;
   filter?: Record<string, any>;
-  status?: "draft" | "published";
+  status?: 'draft' | 'published';
   customColumns?: {
     [key: string]: {
       column: (item: any, uid: UID.ContentType) => string;
@@ -60,7 +60,7 @@ export const restructureObject = async (
   config: ContentTypeConfig,
   filter?: Record<string, any>,
   limit?: number,
-  offset?: number,
+  offset?: number
 ) => {
   const filters = {
     ...filter,
@@ -69,9 +69,9 @@ export const restructureObject = async (
   const restructuredObject = {
     fields: config.columns || undefined,
     filters,
-    status: config.status || "draft",
+    status: config.status || 'draft',
     populate: {},
-    sort: "id:asc",
+    sort: 'id:asc',
     limit: limit,
     offset: offset,
   };
@@ -106,7 +106,7 @@ export const restructureData = async (
     timeFormat?: string;
     timeZone?: string;
     ignore?: string[];
-  },
+  }
 ): Promise<Record<string, string>[]> => {
   return data.map((item: Record<string, any>) => {
     const restructuredItem = {};
@@ -119,25 +119,25 @@ export const restructureData = async (
       if (key in item) {
         if (isISODateString(item[key])) {
           restructuredItem[key] = format(
-            new TZDate(item[key], options.timeZone ?? "+00:00"),
-            options.dateFormat ?? "dd.MM.yyyy HH:mm",
+            new TZDate(item[key], options.timeZone ?? '+00:00'),
+            options.dateFormat ?? 'dd.MM.yyyy HH:mm'
           );
         } else if (isISODateOnlyString(item[key])) {
           restructuredItem[key] = format(
             parseISO(item[key]),
-            options.dateOnlyFormat ?? "dd.MM.yyyy",
+            options.dateOnlyFormat ?? 'dd.MM.yyyy'
           );
         } else if (isISOTimeOnlyString(item[key])) {
           restructuredItem[key] = format(
             parseISO(`1970-01-01T${item[key]}`),
-            options.timeFormat ?? "HH:mm",
+            options.timeFormat ?? 'HH:mm'
           );
         } else if (Array.isArray(item[key])) {
           const entries = item[key];
           restructuredItem[key] = entries.every(
-            (e) => typeof e === "string" || typeof e === "number" || typeof e === "boolean",
+            (e) => typeof e === 'string' || typeof e === 'number' || typeof e === 'boolean'
           )
-            ? entries.join(", ")
+            ? entries.join(', ')
             : JSON.stringify(entries);
         } else if (isPlainObject(item[key])) {
           restructuredItem[key] = JSON.stringify(item[key]);
@@ -167,9 +167,9 @@ const parseNestedRelations = (
   item: any,
   relationConfig: RelationConfig,
   result: Record<string, any>,
-  parentKey: string = "",
+  parentKey: string = ''
 ) => {
-  if (!item || typeof item !== "object") {
+  if (!item || typeof item !== 'object') {
     return;
   }
 
@@ -187,7 +187,7 @@ const parseNestedRelations = (
     const nestedCollections: Record<string, string[]> = {};
 
     for (const arrayItem of item) {
-      if (arrayItem && typeof arrayItem === "object") {
+      if (arrayItem && typeof arrayItem === 'object') {
         // Collect primary value
         if (primaryColumn && primaryColumn in arrayItem) {
           primaryValues.push(arrayItem[primaryColumn]);
@@ -218,14 +218,14 @@ const parseNestedRelations = (
     // Set primary values if any (use the parent key for the primary values)
     if (primaryValues.length > 0) {
       const uniquePrimaryValues = [...new Set(primaryValues.filter(Boolean))];
-      result[parentKey] = uniquePrimaryValues.join(", ");
+      result[parentKey] = uniquePrimaryValues.join(', ');
     }
 
     // Set nested relation values (use their own keys)
     for (const [key, values] of Object.entries(nestedCollections)) {
       if (values.length > 0) {
         const uniqueValues = [...new Set(values.filter(Boolean))];
-        result[key] = uniqueValues.join(", ");
+        result[key] = uniqueValues.join(', ');
       }
     }
 
@@ -252,12 +252,12 @@ const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_TIME = /^\d{2}:\d{2}(:\d{2})?(\.\d{1,3})?$/;
 
-const matchesIso = (value: any, pattern: RegExp, prefix = "") =>
-  typeof value === "string" && pattern.test(value) && isValid(parseISO(`${prefix}${value}`));
+const matchesIso = (value: any, pattern: RegExp, prefix = '') =>
+  typeof value === 'string' && pattern.test(value) && isValid(parseISO(`${prefix}${value}`));
 
 const isISODateString = (value: any) => matchesIso(value, ISO_DATE_TIME);
 const isISODateOnlyString = (value: any) => matchesIso(value, ISO_DATE);
-const isISOTimeOnlyString = (value: any) => matchesIso(value, ISO_TIME, "1970-01-01T");
+const isISOTimeOnlyString = (value: any) => matchesIso(value, ISO_TIME, '1970-01-01T');
 
 const isPlainObject = (value: any) =>
-  value !== null && typeof value === "object" && !(value instanceof Date);
+  value !== null && typeof value === 'object' && !(value instanceof Date);

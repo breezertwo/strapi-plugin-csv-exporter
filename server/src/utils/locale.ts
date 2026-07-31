@@ -1,6 +1,6 @@
-import type { Core } from "@strapi/strapi";
+import type { Core } from '@strapi/strapi';
 
-export const FALLBACK_LOCALE = "en";
+export const FALLBACK_LOCALE = 'en';
 
 export interface LocaleOption {
   label: string;
@@ -14,7 +14,7 @@ export interface LocaleOptions {
 
 const getLocalesService = (strapi: Core.Strapi): any | null => {
   try {
-    return strapi.plugin("i18n")?.service("locales") ?? null;
+    return strapi.plugin('i18n')?.service('locales') ?? null;
   } catch {
     return null;
   }
@@ -31,7 +31,7 @@ export const findLocales = async (strapi: Core.Strapi): Promise<any[]> => {
     const locales = await localesService.find();
     return Array.isArray(locales) ? locales : [];
   } catch (error) {
-    strapi.log.warn("[csv-exporter] Could not read locales from i18n:", error);
+    strapi.log.warn('[csv-exporter] Could not read locales from i18n:', error);
     return [];
   }
 };
@@ -46,7 +46,7 @@ export const getDefaultLocale = async (strapi: Core.Strapi): Promise<string> => 
         return defaultLocale;
       }
     } catch (error) {
-      strapi.log.warn("Could not determine default locale from i18n settings:", error);
+      strapi.log.warn('Could not determine default locale from i18n settings:', error);
     }
   }
 
@@ -68,7 +68,7 @@ export const getLocaleOptions = async (strapi: Core.Strapi): Promise<LocaleOptio
     const withDefault = await localesService?.setIsDefault(locales);
     defaultLocale = withDefault?.find((locale: any) => locale.isDefault)?.code;
   } catch (error) {
-    strapi.log.warn("[csv-exporter] Could not determine the default locale:", error);
+    strapi.log.warn('[csv-exporter] Could not determine the default locale:', error);
   }
 
   return {
@@ -76,4 +76,3 @@ export const getLocaleOptions = async (strapi: Core.Strapi): Promise<LocaleOptio
     defaultLocale: defaultLocale || options[0]?.value || FALLBACK_LOCALE,
   };
 };
-

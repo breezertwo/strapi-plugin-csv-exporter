@@ -1,14 +1,14 @@
-const FORMULA_TRIGGERS = ["=", "+", "-", "@", "\t", "\r"];
+const FORMULA_TRIGGERS = ['=', '+', '-', '@', '\t', '\r'];
 
 const NUMERIC = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
 
 const NEEDS_QUOTING = /["\n\r]/;
 
-export const CSV_LINE_BREAK = "\r\n";
+export const CSV_LINE_BREAK = '\r\n';
 
-export const UTF8_BOM = "\uFEFF";
+export const UTF8_BOM = '\uFEFF';
 
-export const CSV_CONTENT_TYPE = "text/csv; charset=utf-8";
+export const CSV_CONTENT_TYPE = 'text/csv; charset=utf-8';
 
 const escapeFormula = (value: string): string => {
   if (!value || !FORMULA_TRIGGERS.includes(value[0]) || NUMERIC.test(value)) {
@@ -20,12 +20,12 @@ const escapeFormula = (value: string): string => {
 
 export const toCSVValue = (
   value: unknown,
-  options: { delimiter?: string; escapeFormulas?: boolean } = {},
+  options: { delimiter?: string; escapeFormulas?: boolean } = {}
 ): string => {
-  const { delimiter = ",", escapeFormulas = true } = options;
+  const { delimiter = ',', escapeFormulas = true } = options;
 
   if (value === undefined || value === null) {
-    return "";
+    return '';
   }
 
   let field = String(value);
@@ -43,8 +43,8 @@ export const toCSVValue = (
 
 export const toCSVRow = (
   values: unknown[],
-  options: { delimiter?: string; escapeFormulas?: boolean } = {},
-): string => values.map((value) => toCSVValue(value, options)).join(options.delimiter ?? ",");
+  options: { delimiter?: string; escapeFormulas?: boolean } = {}
+): string => values.map((value) => toCSVValue(value, options)).join(options.delimiter ?? ',');
 
 export const orderColumns = (available: string[], order: string[]): string[] => {
   if (order.length === 0) {

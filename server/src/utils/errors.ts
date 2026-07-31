@@ -1,12 +1,12 @@
-import { errors } from "@strapi/utils";
-import type { Core, UID } from "@strapi/strapi";
+import { errors } from '@strapi/utils';
+import type { Core, UID } from '@strapi/strapi';
 
-import type { ResolvedCSVExporterConfig } from "./config";
+import type { ResolvedCSVExporterConfig } from './config';
 
 export const assertExportableUid = (
   uid: UID.ContentType | undefined,
-  config: ResolvedCSVExporterConfig["config"],
-  contentTypes: Core.Strapi["contentTypes"],
+  config: ResolvedCSVExporterConfig['config'],
+  contentTypes: Core.Strapi['contentTypes']
 ): void => {
   if (!uid) {
     throw new errors.ValidationError('Missing required query parameter "uid".');
@@ -14,7 +14,7 @@ export const assertExportableUid = (
 
   if (!config[uid]) {
     throw new errors.ValidationError(
-      `Content type "${uid}" is not configured for export. Add it to config/csv-exporter.ts.`,
+      `Content type "${uid}" is not configured for export. Add it to config/csv-exporter.ts.`
     );
   }
 

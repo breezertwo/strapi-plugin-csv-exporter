@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useFetchClient } from "@strapi/strapi/admin";
-import { format } from "date-fns";
+import { useEffect, useState } from 'react';
+import { useFetchClient } from '@strapi/strapi/admin';
+import { format } from 'date-fns';
 import {
   Status,
   Typography,
@@ -9,9 +9,9 @@ import {
   SingleSelectOption,
   Loader,
   Flex,
-} from "@strapi/design-system";
-import { StrapiTable } from "../components/StrapiTable";
-import { ColumnSorter } from "../components/ColumnSorter";
+} from '@strapi/design-system';
+import { StrapiTable } from '../components/StrapiTable';
+import { ColumnSorter } from '../components/ColumnSorter';
 
 type DropDownValue = {
   label: string;
@@ -44,11 +44,11 @@ const HomePage = () => {
   const [sortedColumns, setSortedColumns] = useState<string[]>([]);
   const [tableData, setTableData] = useState<Array<Record<string, string>>>([]);
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
-  const [selectedLocale, setSelectedLocale] = useState<string>("");
+  const [selectedLocale, setSelectedLocale] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSuccessMessage, setIsSuccessMessage] = useState(false);
   const [isError, setIsError] = useState(false);
-  const [fileName, setFileName] = useState("");
+  const [fileName, setFileName] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [totalRows, setTotalRows] = useState(0);
@@ -58,7 +58,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
-        const { data } = await get<DropDownValuesResponse>("/csv-exporter/dropdownvalues");
+        const { data } = await get<DropDownValuesResponse>('/csv-exporter/dropdownvalues');
         setDropDownData(data);
 
         if (data.defaultLocale) {
@@ -69,7 +69,7 @@ const HomePage = () => {
 
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching dropdown value:", error);
+        console.error('Error fetching dropdown value:', error);
         setIsLoading(false);
       }
     };
@@ -116,8 +116,8 @@ const HomePage = () => {
     try {
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      const { data: blob } = await get("/csv-exporter/download", {
-        responseType: "blob",
+      const { data: blob } = await get('/csv-exporter/download', {
+        responseType: 'blob',
         params: {
           uid: selectedValue,
           locale: selectedLocale,
@@ -126,12 +126,12 @@ const HomePage = () => {
         },
       });
 
-      const formattedDate = format(new Date(), "dd_MM_yyyy_HH_mm");
-      const downloadFileName = `${selectedValue?.split(".")[1]}-export-${formattedDate}.csv`;
+      const formattedDate = format(new Date(), 'dd_MM_yyyy_HH_mm');
+      const downloadFileName = `${selectedValue?.split('.')[1]}-export-${formattedDate}.csv`;
       setFileName(downloadFileName);
 
       const href = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = href;
       link.download = downloadFileName;
       link.click();
@@ -147,7 +147,7 @@ const HomePage = () => {
         setIsError(false);
       }, 8000);
 
-      console.error("Error downloading csv file:", error);
+      console.error('Error downloading csv file:', error);
       return;
     }
   };
@@ -158,7 +158,7 @@ const HomePage = () => {
     newPerPage: number,
     locale?: string,
     resetSortedColumns?: boolean,
-    offsetOverride?: number,
+    offsetOverride?: number
   ) => {
     setLoading(true);
     if (value) {
@@ -168,7 +168,7 @@ const HomePage = () => {
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
         const { data: table } = await get<TableDataResponse>(
-          `/csv-exporter/tabledata?uid=${value}&limit=${limit}&offset=${offset}&locale=${locale || selectedLocale}&timezone=${timeZone}`,
+          `/csv-exporter/tabledata?uid=${value}&limit=${limit}&offset=${offset}&locale=${locale || selectedLocale}&timezone=${timeZone}`
         );
 
         if (table.columns) {
@@ -186,7 +186,7 @@ const HomePage = () => {
 
         return table;
       } catch (error) {
-        console.error("Error fetching table data:", error);
+        console.error('Error fetching table data:', error);
       } finally {
         setLoading(false);
       }
@@ -213,7 +213,7 @@ const HomePage = () => {
         newPerPage,
         selectedLocale,
         false,
-        0,
+        0
       );
 
       if (table?.data) {
@@ -221,7 +221,7 @@ const HomePage = () => {
         setTotalRows(table.count);
       }
     } catch (error) {
-      console.error("Error fetching table data:", error);
+      console.error('Error fetching table data:', error);
     } finally {
       setLoading(false);
     }
@@ -246,10 +246,10 @@ const HomePage = () => {
               Collection Type
             </Typography>
           </label>
-          <div style={{ maxWidth: "324px", display: "flex", alignItems: "center" }}>
+          <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
             <SingleSelect
               id="collectionType"
-              value={selectedValue || ""}
+              value={selectedValue || ''}
               onChange={(value) => handleCollectionTypeChange(value.toString())}
               size="M"
               placeholder="Select Collection Type"
@@ -264,10 +264,10 @@ const HomePage = () => {
           </div>
         </Flex>
         <Flex gap={2} direction="column" marginTop={2} alignItems="flex-start">
-          <div style={{ maxWidth: "324px", display: "flex", alignItems: "center" }}>
+          <div style={{ maxWidth: '324px', display: 'flex', alignItems: 'center' }}>
             <SingleSelect
               id="locales"
-              value={selectedLocale || ""}
+              value={selectedLocale || ''}
               onChange={(value) => {
                 handleLocaleChange(value.toString());
               }}
@@ -284,13 +284,13 @@ const HomePage = () => {
         </Flex>
       </Flex>
       {selectedValue && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <Button
             onClick={handleDownloadCSV}
             disabled={sortedColumns.length === 0}
             size="L"
             style={{
-              width: "300px",
+              width: '300px',
             }}
           >
             Download
