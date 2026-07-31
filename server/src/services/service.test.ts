@@ -12,7 +12,6 @@ const fakeStrapi = () =>
     config: { get: () => ({ config: { [uid]: { columns: ["title"] } } }) },
     contentTypes: { [uid]: { kind: "collectionType", attributes: { title: { type: "string" } } } },
     log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
-    // Reaching either of these would mean the uid check ran too late.
     documents: vi.fn(() => {
       throw new Error("documents() must not be called for an invalid uid");
     }),
@@ -45,8 +44,6 @@ describe.each(["getTableData", "downloadCSV"] as const)("%s", (method) => {
   });
 
   it("does not resolve with undefined, which Koa would turn into a 204", async () => {
-    // Regression: the service used to `return ctx.badRequest(...)`, which returns undefined.
-    // The controller then assigned that to ctx.body and Koa downgraded the 400 to an empty 204.
     const { result } = invoke({ uid: "api::secret.secret" });
 
     await expect(result).rejects.toBeDefined();
@@ -82,13 +79,10 @@ describe("getDropdownValues without i18n", () => {
         [uid]: { kind: "collectionType", info: { displayName: "Article" }, attributes: {} },
       },
       log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
-      // i18n disabled: strapi.plugin('i18n') is undefined.
       plugin: () => undefined,
     }) as unknown as Core.Strapi;
 
   it("still lists the configured content types", async () => {
-    // Regression: an unguarded strapi.plugin('i18n').service('locales') made the dropdown
-    // endpoint 500, which left the whole admin page blank.
     const strapi = noI18nStrapi();
     const result = await service({ strapi }).getDropdownValues(fakeCtx({}));
 

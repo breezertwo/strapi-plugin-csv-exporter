@@ -6,10 +6,6 @@ const NEEDS_QUOTING = /["\n\r]/;
 
 export const CSV_LINE_BREAK = "\r\n";
 
-/**
- * Excel assumes the current ANSI code page for a .csv unless the file starts with a UTF-8
- * byte order mark, which mangles anything outside ASCII (umlauts, accents, CJK).
- */
 export const UTF8_BOM = "\uFEFF";
 
 export const CSV_CONTENT_TYPE = "text/csv; charset=utf-8";

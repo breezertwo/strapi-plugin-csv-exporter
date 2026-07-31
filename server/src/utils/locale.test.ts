@@ -16,7 +16,6 @@ const locales = [
   { name: "German (de)", code: "de" },
 ];
 
-/** i18n present and working. */
 const withI18n = (overrides: Record<string, unknown> = {}) =>
   ({
     log,
@@ -31,10 +30,8 @@ const withI18n = (overrides: Record<string, unknown> = {}) =>
     }),
   }) as unknown as Core.Strapi;
 
-/** i18n disabled: strapi.plugin('i18n') is undefined. */
 const withoutI18n = () => ({ log, plugin: () => undefined }) as unknown as Core.Strapi;
 
-/** Some Strapi versions throw rather than returning undefined. */
 const throwingI18n = () =>
   ({
     log,

@@ -36,8 +36,6 @@ describe("assertExportableUid", () => {
   });
 
   it("throws errors Strapi maps to a 400", () => {
-    // ValidationError is not in Strapi's status map, and formatApplicationError defaults
-    // unmapped ApplicationErrors to 400.
     try {
       assertExportableUid(undefined, config, contentTypes);
       expect.unreachable("should have thrown");

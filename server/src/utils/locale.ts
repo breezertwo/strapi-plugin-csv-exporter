@@ -12,11 +12,6 @@ export interface LocaleOptions {
   defaultLocale: string;
 }
 
-/**
- * The i18n plugin ships with Strapi but can be disabled, in which case `strapi.plugin('i18n')`
- * is undefined and calling `.service()` on it takes down every endpoint of this plugin. Every
- * i18n access therefore goes through here, and the plugin degrades to "no locales" instead.
- */
 const getLocalesService = (strapi: Core.Strapi): any | null => {
   try {
     return strapi.plugin("i18n")?.service("locales") ?? null;
@@ -25,7 +20,6 @@ const getLocalesService = (strapi: Core.Strapi): any | null => {
   }
 };
 
-/** All configured locales, or an empty array when i18n is unavailable. */
 export const findLocales = async (strapi: Core.Strapi): Promise<any[]> => {
   const localesService = getLocalesService(strapi);
 
@@ -59,7 +53,6 @@ export const getDefaultLocale = async (strapi: Core.Strapi): Promise<string> => 
   return FALLBACK_LOCALE;
 };
 
-/** Locale dropdown options for the admin panel. Empty when i18n is unavailable. */
 export const getLocaleOptions = async (strapi: Core.Strapi): Promise<LocaleOptions> => {
   const localesService = getLocalesService(strapi);
   const locales = await findLocales(strapi);
@@ -84,9 +77,5 @@ export const getLocaleOptions = async (strapi: Core.Strapi): Promise<LocaleOptio
   };
 };
 
-/**
- * Only filter by locale when more than one is configured - a single-locale (or i18n-less)
- * project stores `null` on non-localized entries, which would filter everything out.
- */
 export const localeFilter = (locales: unknown[], locale: string): { locale?: string } =>
   locales.length > 1 ? { locale } : {};

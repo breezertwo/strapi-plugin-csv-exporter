@@ -3,13 +3,6 @@ import type { Core, UID } from "@strapi/strapi";
 
 import type { ResolvedCSVExporterConfig } from "./config";
 
-/**
- * Reject a request with a 400 instead of letting it fail later with a 500.
- *
- * Strapi's error middleware turns a thrown `ApplicationError` into a proper response, whereas
- * `ctx.badRequest()` only mutates the context and returns `undefined` - which the controller
- * then assigns to `ctx.body`, making Koa downgrade the response to an empty 204.
- */
 export const assertExportableUid = (
   uid: UID.ContentType | undefined,
   config: ResolvedCSVExporterConfig["config"],
@@ -30,6 +23,5 @@ export const assertExportableUid = (
   }
 };
 
-/** Application errors carry their own status and message and must reach the error middleware. */
 export const isApplicationError = (error: unknown): boolean =>
   error instanceof errors.ApplicationError;
