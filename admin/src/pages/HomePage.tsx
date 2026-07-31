@@ -52,6 +52,7 @@ const HomePage = () => {
   const [fileName, setFileName] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const showLocales =
     dropDownData.locales.length > 0 &&
     Boolean(dropDownData.contentTypes.find((type) => type.value === selectedValue)?.localized);
@@ -115,7 +116,9 @@ const HomePage = () => {
   };
 
   const handleDownloadCSV = async () => {
-    if (!selectedValue || sortedColumns.length === 0) return;
+    if (!selectedValue || sortedColumns.length === 0 || isDownloading) return;
+
+    setIsDownloading(true);
 
     try {
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -152,7 +155,8 @@ const HomePage = () => {
       }, 8000);
 
       console.error('Error downloading csv file:', error);
-      return;
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -291,16 +295,25 @@ const HomePage = () => {
       </Flex>
       {selectedValue && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <Button
-            onClick={handleDownloadCSV}
-            disabled={sortedColumns.length === 0}
-            size="L"
-            style={{
-              width: '300px',
-            }}
-          >
-            Download
-          </Button>
+          <Flex gap={3} alignItems="center">
+            <Button
+              onClick={handleDownloadCSV}
+              disabled={sortedColumns.length === 0 || isDownloading}
+              loading={isDownloading}
+              size="L"
+              style={{
+                width: '300px',
+              }}
+            >
+              {isDownloading ? 'Preparing export…' : 'Download'}
+            </Button>
+            {sortedColumns.length > 0 && (
+              <Typography variant="omega" textColor="neutral600">
+                {totalRows === 1 ? '1 row' : `${totalRows.toLocaleString()} rows`} ·{' '}
+                {sortedColumns.length === 1 ? '1 column' : `${sortedColumns.length} columns`}
+              </Typography>
+            )}
+          </Flex>
 
           {sortedColumns.length === 0 && (
             <Status variant="warning">
