@@ -23,6 +23,16 @@ interface DropDownValues {
   contentTypes: DropDownValue[];
 }
 
+interface DropDownValuesResponse extends DropDownValues {
+  defaultLocale?: string;
+}
+
+interface TableDataResponse {
+  columns?: string[];
+  data?: Array<Record<string, string>>;
+  count: number;
+}
+
 const HomePage = () => {
   const { get } = useFetchClient();
   const token = useAuth('CSVExporterHomePage', (state) => state.token);
@@ -49,12 +59,12 @@ const HomePage = () => {
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
-        const { data } = await get('/csv-exporter/dropdownvalues');
+        const { data } = await get<DropDownValuesResponse>('/csv-exporter/dropdownvalues');
         setDropDownData(data);
 
         if (data.defaultLocale) {
           setSelectedLocale(data.defaultLocale);
-        } else if (data.locales?.length > 0) {
+        } else if (data.locales?.length) {
           setSelectedLocale(data.locales[0].value);
         }
 
@@ -171,7 +181,7 @@ const HomePage = () => {
         const limit = newPerPage;
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-        const { data: table } = await get(
+        const { data: table } = await get<TableDataResponse>(
           `/csv-exporter/tabledata?uid=${value}&limit=${limit}&offset=${offset}&locale=${locale || selectedLocale}&timezone=${timeZone}`
         );
 
@@ -220,7 +230,7 @@ const HomePage = () => {
         0
       );
 
-      if (table.data) {
+      if (table?.data) {
         setTableData(table.data);
         setTotalRows(table.count);
       }
