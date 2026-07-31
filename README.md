@@ -113,6 +113,10 @@ module.exports = (): CSVExporterPlugin => ({
   // evaluate as a formula (values starting with =, +, -, @, tab or CR) with a single quote.
   // Plain numbers (-5, +3.2) are left untouched
   escapeFormulas: true, // default
+  // Optional: Prefix the file with a UTF-8 byte order mark. Without it Excel assumes the
+  // local ANSI code page and mangles umlauts, accents and other non-ASCII characters.
+  // Disable if your consumer chokes on the marker.
+  bom: true, // default
 });
 ```
 

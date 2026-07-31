@@ -33,6 +33,7 @@ export interface CSVExporterPlugin {
   timeZone?: string;
   ignore?: string[];
   escapeFormulas?: boolean;
+  bom?: boolean;
   config: AtLeastOne<Record<UID.ContentType, ContentTypeConfig>>;
 }
 

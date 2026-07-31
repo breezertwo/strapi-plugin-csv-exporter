@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { CSV_LINE_BREAK, orderColumns, toCSVRow, toCSVValue } from './csv';
+import {
+  CSV_CONTENT_TYPE,
+  CSV_LINE_BREAK,
+  UTF8_BOM,
+  orderColumns,
+  toCSVRow,
+  toCSVValue,
+} from './csv';
 
 describe('toCSVValue', () => {
   describe('empty values', () => {
@@ -137,5 +144,31 @@ describe('orderColumns', () => {
     const columns = Array.from({ length: 150 }, (_, i) => `col${i + 1}`);
 
     expect(orderColumns([...columns].reverse(), columns)).toEqual(columns);
+  });
+});
+
+describe("UTF8_BOM", () => {
+  it("is the U+FEFF byte order mark", () => {
+    expect(UTF8_BOM).toBe("\uFEFF");
+    expect(UTF8_BOM).toHaveLength(1);
+  });
+
+  it("encodes to the three-byte UTF-8 BOM Excel looks for", () => {
+    expect([...Buffer.from(UTF8_BOM, "utf8")]).toEqual([0xef, 0xbb, 0xbf]);
+  });
+
+  it("puts the marker before the header row", () => {
+    const content = UTF8_BOM + toCSVRow(["Straße", "Body"]) + CSV_LINE_BREAK;
+
+    expect(Buffer.from(content, "utf8").subarray(0, 3)).toEqual(
+      Buffer.from([0xef, 0xbb, 0xbf]),
+    );
+    expect(content.slice(1)).toBe("Straße,Body\r\n");
+  });
+});
+
+describe("CSV_CONTENT_TYPE", () => {
+  it("declares the charset", () => {
+    expect(CSV_CONTENT_TYPE).toBe("text/csv; charset=utf-8");
   });
 });

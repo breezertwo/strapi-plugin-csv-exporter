@@ -15,6 +15,8 @@ import {
   toCSVRow,
   toStringArray,
   CSV_LINE_BREAK,
+  CSV_CONTENT_TYPE,
+  UTF8_BOM,
 } from "../utils";
 
 const service = ({ strapi }: { strapi: Core.Strapi }) => ({
@@ -121,6 +123,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         timeZone: configTimeZone,
         ignore,
         escapeFormulas,
+        bom,
       } = getPluginConfig(strapi);
       const uid = ctx.query.uid as UID.ContentType;
 
@@ -169,7 +172,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       // Create CSV content
       const csvOptions = { escapeFormulas };
-      let csvContent = toCSVRow(headerRestructure, csvOptions) + CSV_LINE_BREAK;
+      let csvContent = bom ? UTF8_BOM : "";
+      csvContent += toCSVRow(headerRestructure, csvOptions) + CSV_LINE_BREAK;
 
       // Add data rows to CSV
       csvData.forEach((row) => {
@@ -179,7 +183,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       // Set response headers
       ctx.set("Content-Disposition", "attachment; filename=export.csv");
-      ctx.set("Content-Type", "text/csv");
+      ctx.set("Content-Type", CSV_CONTENT_TYPE);
       return Buffer.from(csvContent);
     } catch (error) {
       if (isApplicationError(error)) throw error;
