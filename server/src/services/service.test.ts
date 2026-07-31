@@ -470,3 +470,38 @@ describe('admin permissions', () => {
     expect(result.contentTypes).toEqual([]);
   });
 });
+
+describe('dropdown content type matching', () => {
+  it('does not offer a content type whose uid merely contains a configured one', async () => {
+    const strapi = {
+      config: { get: () => ({ config: { 'api::post.post': { columns: ['title'] } } }) },
+      contentTypes: {
+        'api::post.post': { kind: 'collectionType', info: { displayName: 'Post' }, attributes: {} },
+        'api::post.post-archive': {
+          kind: 'collectionType',
+          info: { displayName: 'Post Archive' },
+          attributes: {},
+        },
+      },
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+      plugin: fakePlugin(),
+    } as unknown as Core.Strapi;
+
+    const result = await service({ strapi }).getDropdownValues(fakeCtx({}));
+
+    expect(result.contentTypes).toEqual([{ label: 'Post', value: 'api::post.post' }]);
+  });
+
+  it('skips a configured uid that is not a collection type', async () => {
+    const strapi = {
+      config: { get: () => ({ config: { 'api::home.home': { columns: ['title'] } } }) },
+      contentTypes: { 'api::home.home': { kind: 'singleType', attributes: {} } },
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+      plugin: fakePlugin(),
+    } as unknown as Core.Strapi;
+
+    const result = await service({ strapi }).getDropdownValues(fakeCtx({}));
+
+    expect(result.contentTypes).toEqual([]);
+  });
+});

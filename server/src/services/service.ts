@@ -26,22 +26,17 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   async getDropdownValues(ctx: Context) {
     try {
       const { config } = getPluginConfig(strapi);
-      const contentTypes = Object.keys(config) as UID.ContentType[];
-      const dropDownValues = [];
-
-      Object.entries(strapi.contentTypes).forEach(([uid, contentType]) => {
-        if (contentType.kind === 'collectionType') {
-          contentTypes.forEach((type) => {
-            if (uid.includes(type) && canReadContentType(strapi, ctx, uid as UID.ContentType)) {
-              const label = config[uid]?.dropdownLabel ?? contentType?.info?.displayName ?? type;
-              dropDownValues.push({
-                label,
-                value: uid,
-              });
-            }
-          });
-        }
-      });
+      const dropDownValues = (Object.keys(config) as UID.ContentType[])
+        .filter(
+          (uid) =>
+            strapi.contentTypes[uid]?.kind === 'collectionType' &&
+            canReadContentType(strapi, ctx, uid)
+        )
+        .map((uid) => ({
+          label:
+            config[uid]?.dropdownLabel ?? strapi.contentTypes[uid]?.info?.displayName ?? uid,
+          value: uid,
+        }));
 
       dropDownValues.sort((a, b) => a.label.localeCompare(b.label));
 
