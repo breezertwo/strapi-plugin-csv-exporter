@@ -104,7 +104,7 @@ module.exports = (): CSVExporterPlugin => ({
   },
 
   // Optional: Global date formatting for all fields that are a valid ISO Date
-  dateFormat: 'dd/MM/yyyy HH:mm', // default
+  dateFormat: 'dd.MM.yyyy HH:mm', // default
   // Optional: Set a *global* IANA time zone identifier or UTC offset (e.g. 'Europe/Berlin' or '+02:00'). Per default, the current timezone of the client will be used to format timestamps. If no timezone can be determined, default will be UTC+00:00)
   timeZone: '+00:00', // default
   // Optional: Fields to globally ignore in exports

@@ -88,7 +88,9 @@ export const restructureData = async (
 
     // Process regular columns
     // filter out documentId - for some reason it gets added somewhere and i can not fathom where
-    for (const key of config.columns.filter((c) => !options.ignore.includes(c))) {
+    const ignore = options.ignore ?? [];
+
+    for (const key of config.columns.filter((c) => !ignore.includes(c))) {
       if (key in item) {
         if (isISODateString(item[key])) {
           restructuredItem[key] = format(

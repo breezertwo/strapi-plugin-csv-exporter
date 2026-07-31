@@ -5,16 +5,16 @@ import {
   restructureObject,
   validateFilter,
   getDefaultLocale,
+  getPluginConfig,
   toCSVRow,
   CSV_LINE_BREAK,
-  type CSVExporterPlugin,
 } from '../utils';
 
 const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   async getDropdownValues(ctx: Context) {
     try {
-      const { config } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
-      const contentTypes = Object.keys(config || {}) as UID.ContentType[];
+      const { config } = getPluginConfig(strapi);
+      const contentTypes = Object.keys(config) as UID.ContentType[];
       const dropDownValues = [];
 
       Object.entries(strapi.contentTypes).forEach(([uid, contentType]) => {
@@ -59,12 +59,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   },
   async getTableData(ctx: Context) {
     try {
-      const {
-        config,
-        dateFormat,
-        timeZone: configTimeZone,
-        ignore,
-      } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
+      const { config, dateFormat, timeZone: configTimeZone, ignore } = getPluginConfig(strapi);
 
       const uid = ctx.query.uid as UID.ContentType;
       const limit = parseInt(ctx.query.limit as string, 10) || 10;
@@ -129,8 +124,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         dateFormat,
         timeZone: configTimeZone,
         ignore,
-        escapeFormulas = true,
-      } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
+        escapeFormulas,
+      } = getPluginConfig(strapi);
       const uid = ctx.query.uid as UID.ContentType;
       const sortOrder = ctx.query.sortOrder as string[];
       const locale = (ctx.query.locale as string) || (await getDefaultLocale(strapi));
