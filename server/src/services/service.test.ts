@@ -73,3 +73,43 @@ describe.each(["getTableData", "downloadCSV"] as const)("%s", (method) => {
     await expect(result).rejects.toBeInstanceOf(errors.ValidationError);
   });
 });
+
+describe("getDropdownValues without i18n", () => {
+  const noI18nStrapi = () =>
+    ({
+      config: { get: () => ({ config: { [uid]: { columns: ["title"] } } }) },
+      contentTypes: {
+        [uid]: { kind: "collectionType", info: { displayName: "Article" }, attributes: {} },
+      },
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+      // i18n disabled: strapi.plugin('i18n') is undefined.
+      plugin: () => undefined,
+    }) as unknown as Core.Strapi;
+
+  it("still lists the configured content types", async () => {
+    // Regression: an unguarded strapi.plugin('i18n').service('locales') made the dropdown
+    // endpoint 500, which left the whole admin page blank.
+    const strapi = noI18nStrapi();
+    const result = await service({ strapi }).getDropdownValues(fakeCtx({}));
+
+    expect(result.contentTypes).toEqual([{ label: "Article", value: uid }]);
+  });
+
+  it("reports no locales instead of failing", async () => {
+    const strapi = noI18nStrapi();
+    const result = await service({ strapi }).getDropdownValues(fakeCtx({}));
+
+    expect(result.locales).toEqual([]);
+    expect(result.defaultLocale).toBe("en");
+  });
+
+  it("does not log an error or throw a 500", async () => {
+    const strapi = noI18nStrapi();
+    const ctx = fakeCtx({});
+
+    await service({ strapi }).getDropdownValues(ctx);
+
+    expect(strapi.log.error).not.toHaveBeenCalled();
+    expect(ctx.throw).not.toHaveBeenCalled();
+  });
+});

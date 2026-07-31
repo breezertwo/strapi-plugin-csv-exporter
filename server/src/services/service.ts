@@ -5,6 +5,9 @@ import {
   restructureObject,
   validateFilter,
   getDefaultLocale,
+  getLocaleOptions,
+  findLocales,
+  localeFilter,
   getPluginConfig,
   assertExportableUid,
   isApplicationError,
@@ -38,21 +41,10 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       dropDownValues.sort((a, b) => a.label.localeCompare(b.label));
 
       // get available locales & default locale
-      const localesService = strapi.plugin("i18n").service("locales");
-      const result = await localesService.find();
-
-      const allLocales =
-        result?.map((locale: any) => ({
-          label: locale.name,
-          value: locale.code,
-        })) || [];
-
-      const resultWithDefault = await localesService.setIsDefault(result);
-      const defaultLocaleEntry = resultWithDefault?.find((l: any) => l.isDefault);
-      const defaultLocale = defaultLocaleEntry?.code || allLocales[0]?.value || "en";
+      const { locales, defaultLocale } = await getLocaleOptions(strapi);
 
       return {
-        locales: allLocales,
+        locales,
         contentTypes: dropDownValues,
         defaultLocale,
       };
@@ -83,14 +75,13 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       const query = await restructureObject(config[uid], validatedFilters, limit, offset);
 
-      const localesService = strapi.plugin("i18n").service("locales");
-      const locales = await localesService.find();
+      const locales = await findLocales(strapi);
 
       const response = await strapi.documents(uid).findMany({
         ...query,
         filters: {
           ...query.filters,
-          ...(Array.isArray(locales) && locales.length > 1 ? { locale } : {}),
+          ...localeFilter(locales, locale),
         },
       });
 
@@ -107,7 +98,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       });
 
       const count = await strapi.documents(uid).count({
-        filters: Array.isArray(locales) && locales.length > 1 ? { locale } : {},
+        filters: localeFilter(locales, locale),
       });
 
       return {
@@ -144,15 +135,14 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         strapi.contentTypes[uid].attributes,
       );
 
-      const localesService = strapi.plugin("i18n").service("locales");
-      const locales = await localesService.find();
+      const locales = await findLocales(strapi);
 
       const query = await restructureObject(config[uid], validatedFilters);
       const response = await strapi.documents(uid).findMany({
         ...query,
         filters: {
           ...query.filters,
-          ...(Array.isArray(locales) && locales.length > 1 ? { locale } : {}),
+          ...localeFilter(locales, locale),
         },
       });
       const csvData = await restructureData(response, config[uid], uid, {
