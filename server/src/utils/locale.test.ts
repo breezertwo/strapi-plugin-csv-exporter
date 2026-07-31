@@ -6,7 +6,6 @@ import {
   findLocales,
   getDefaultLocale,
   getLocaleOptions,
-  localeFilter,
 } from "./locale";
 
 const log = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() };
@@ -133,15 +132,3 @@ describe("getLocaleOptions", () => {
   });
 });
 
-describe("localeFilter", () => {
-  it("filters by locale when several are configured", () => {
-    expect(localeFilter(locales, "de")).toEqual({ locale: "de" });
-  });
-
-  it.each([
-    ["no locales (i18n disabled)", []],
-    ["a single locale", [locales[0]]],
-  ])("does not filter for %s", (_label, input) => {
-    expect(localeFilter(input, "de")).toEqual({});
-  });
-});

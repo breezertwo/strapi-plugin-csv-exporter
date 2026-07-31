@@ -77,5 +77,3 @@ export const getLocaleOptions = async (strapi: Core.Strapi): Promise<LocaleOptio
   };
 };
 
-export const localeFilter = (locales: unknown[], locale: string): { locale?: string } =>
-  locales.length > 1 ? { locale } : {};

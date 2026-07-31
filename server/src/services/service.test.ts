@@ -107,3 +107,89 @@ describe("getDropdownValues without i18n", () => {
     expect(ctx.throw).not.toHaveBeenCalled();
   });
 });
+
+describe("locale handling", () => {
+  const localizedUid = uid;
+  const plainUid = "api::setting.setting";
+
+  const spyStrapi = () => {
+    const calls: { findMany: any[]; count: any[] } = { findMany: [], count: [] };
+
+    const strapi = {
+      config: {
+        get: () => ({
+          config: {
+            [localizedUid]: { columns: ["title"] },
+            [plainUid]: { columns: ["title"] },
+          },
+        }),
+      },
+      contentTypes: {
+        [localizedUid]: { kind: "collectionType", attributes: { title: { type: "string" } } },
+        [plainUid]: { kind: "collectionType", attributes: { title: { type: "string" } } },
+      },
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+      documents: () => ({
+        findMany: async (params: any) => {
+          calls.findMany.push(params);
+          return [];
+        },
+        count: async (params: any) => {
+          calls.count.push(params);
+          return 0;
+        },
+      }),
+      plugin: () => ({
+        service: () => ({
+          find: async () => [
+            { name: "English (en)", code: "en" },
+            { name: "German (de)", code: "de" },
+          ],
+          getDefaultLocale: async () => "en",
+          setIsDefault: async (input: any[]) => input,
+        }),
+      }),
+    } as unknown as Core.Strapi;
+
+    return { strapi, calls };
+  };
+
+  it.each([
+    ["getTableData", "getTableData" as const],
+    ["downloadCSV", "downloadCSV" as const],
+  ])("%s passes locale as a param, not a filter", async (_label, method) => {
+    const { strapi, calls } = spyStrapi();
+
+    await service({ strapi })[method](
+      fakeCtx({ uid: plainUid, locale: "de", sortOrder: ["title"] }),
+    );
+
+    expect(calls.findMany[0].locale).toBe("de");
+    expect(calls.findMany[0].filters).not.toHaveProperty("locale");
+  });
+
+  it("keeps the configured filters alongside the locale param", async () => {
+    const { strapi, calls } = spyStrapi();
+
+    await service({ strapi }).getTableData(fakeCtx({ uid: localizedUid, locale: "de" }));
+
+    expect(calls.findMany[0]).toMatchObject({ locale: "de" });
+    expect(calls.findMany[0].filters).toEqual({});
+  });
+
+  it("counts with the same locale", async () => {
+    const { strapi, calls } = spyStrapi();
+
+    await service({ strapi }).getTableData(fakeCtx({ uid: plainUid, locale: "de" }));
+
+    expect(calls.count[0]).toEqual({ locale: "de" });
+  });
+
+  it("falls back to the default locale when none is requested", async () => {
+    const { strapi, calls } = spyStrapi();
+
+    await service({ strapi }).getTableData(fakeCtx({ uid: plainUid }));
+
+    expect(calls.findMany[0].locale).toBe("en");
+  });
+});
