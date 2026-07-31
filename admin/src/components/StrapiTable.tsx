@@ -143,7 +143,11 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
 
               // Show ellipsis if current page is far from start
               if (currentPage > 3) {
-                pages.push(<Typography variant="pi">...</Typography>);
+                pages.push(
+                  <Typography key="ellipsis-start" variant="pi">
+                    ...
+                  </Typography>
+                );
               }
 
               // Show pages around current page
@@ -160,7 +164,11 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
 
               // Show ellipsis if current page is far from end
               if (currentPage < totalPages - 2) {
-                pages.push(<Typography variant="pi">...</Typography>);
+                pages.push(
+                  <Typography key="ellipsis-end" variant="pi">
+                    ...
+                  </Typography>
+                );
               }
 
               // Always show last page
