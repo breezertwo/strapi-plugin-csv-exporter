@@ -1,5 +1,6 @@
 export * from './config';
 export * from './csv';
+export * from './errors';
 export * from './data-format';
 export * from './validate-filter';
 export * from './locale';

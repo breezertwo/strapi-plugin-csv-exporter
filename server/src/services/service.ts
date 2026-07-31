@@ -6,6 +6,8 @@ import {
   validateFilter,
   getDefaultLocale,
   getPluginConfig,
+  assertExportableUid,
+  isApplicationError,
   orderColumns,
   toCSVRow,
   toStringArray,
@@ -55,6 +57,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         defaultLocale,
       };
     } catch (error) {
+      if (isApplicationError(error)) throw error;
+
       strapi.log.error("Error fetching dropdown data:", error);
       ctx.throw(500, "internal server error while fetching dropdown data");
     }
@@ -64,14 +68,13 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       const { config, dateFormat, timeZone: configTimeZone, ignore } = getPluginConfig(strapi);
 
       const uid = ctx.query.uid as UID.ContentType;
+
+      assertExportableUid(uid, config, strapi.contentTypes);
+
       const limit = parseInt(ctx.query.limit as string, 10) || 10;
       const offset = parseInt(ctx.query.offset as string, 10) || 0;
       const locale = (ctx.query.locale as string) || (await getDefaultLocale(strapi));
       const timeZone = (ctx.query.timezone as string) || "+00:00";
-
-      if (!uid || !config[uid]) {
-        return ctx.badRequest("Invalid content type uid");
-      }
 
       const validatedFilters = validateFilter(
         config[uid].filter,
@@ -113,6 +116,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         count,
       };
     } catch (error) {
+      if (isApplicationError(error)) throw error;
+
       strapi.log.error("Error fetching table data:", error);
       ctx.throw(500, "Internal server error while fetching table data");
     }
@@ -127,13 +132,12 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         escapeFormulas,
       } = getPluginConfig(strapi);
       const uid = ctx.query.uid as UID.ContentType;
+
+      assertExportableUid(uid, config, strapi.contentTypes);
+
       const sortOrder = toStringArray(ctx.query.sortOrder);
       const locale = (ctx.query.locale as string) || (await getDefaultLocale(strapi));
       const timeZone = (ctx.query.timezone as string) || "+00:00";
-
-      if (!uid || !config[uid]) {
-        return ctx.badRequest("Invalid content type uid");
-      }
 
       const validatedFilters = validateFilter(
         config[uid].filter,
@@ -188,6 +192,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       ctx.set("Content-Type", "text/csv");
       return Buffer.from(csvContent);
     } catch (error) {
+      if (isApplicationError(error)) throw error;
+
       strapi.log.error("Error generating CSV file:", error);
       ctx.throw(500, "Internal server error while generating CSV file");
     }
