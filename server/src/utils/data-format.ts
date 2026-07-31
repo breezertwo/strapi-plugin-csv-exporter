@@ -78,6 +78,22 @@ export const restructureObject = async (
   return restructuredObject;
 };
 
+const relationColumns = (relations: { [key: string]: RelationConfig } = {}): string[] =>
+  Object.entries(relations).flatMap(([key, relation]) => [
+    key,
+    ...relationColumns(relation.relation),
+  ]);
+
+export const expectedColumns = (config: ContentTypeConfig, ignore: string[] = []): string[] => {
+  const columns = [
+    ...(config.columns ?? []).filter((column) => !ignore.includes(column)),
+    ...relationColumns(config.relation),
+    ...Object.keys(config.customColumns ?? {}),
+  ];
+
+  return [...new Set(columns)];
+};
+
 export const restructureData = async (
   data: any,
   config: ContentTypeConfig,

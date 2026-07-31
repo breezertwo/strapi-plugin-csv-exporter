@@ -3,6 +3,7 @@ import type { Context } from "koa";
 import {
   restructureData,
   restructureObject,
+  expectedColumns,
   validateFilter,
   getDefaultLocale,
   getLocaleOptions,
@@ -86,12 +87,6 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         ignore,
       });
 
-      // Collect all unique keys from the actual data
-      const allKeys = new Set<string>();
-      data.forEach((item) => {
-        Object.keys(item).forEach((key) => allKeys.add(key));
-      });
-
       const count = await strapi.documents(uid).count({
         filters: query.filters,
         status: query.status,
@@ -99,7 +94,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       });
 
       return {
-        columns: Array.from(allKeys),
+        columns: expectedColumns(config[uid], ignore),
         data,
         count,
       };
@@ -144,13 +139,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         timeZone: configTimeZone ?? timeZone,
       });
 
-      // Collect all unique keys from the actual data
-      const allKeys = new Set<string>();
-      csvData.forEach((item) => {
-        Object.keys(item).forEach((key) => allKeys.add(key));
-      });
-
-      const sortedArray = orderColumns(Array.from(allKeys), sortOrder);
+      const sortedArray = orderColumns(expectedColumns(config[uid], ignore), sortOrder);
 
       // Transform the headers to the desired format
       const headerRestructure = sortedArray.map((element) =>

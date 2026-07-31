@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { UID } from "@strapi/strapi";
 
-import { restructureData } from "./data-format";
+import { expectedColumns, restructureData } from "./data-format";
 
 const uid = "api::article.article" as UID.ContentType;
 
@@ -46,5 +46,79 @@ describe("date formatting fallbacks", () => {
     });
 
     expect(result[0].when).toBe("16.01.2024 00:30");
+  });
+});
+
+describe("expectedColumns", () => {
+  it("lists the configured columns in order", () => {
+    expect(expectedColumns({ columns: ["title", "createdAt"] })).toEqual(["title", "createdAt"]);
+  });
+
+  it("drops ignored columns", () => {
+    expect(expectedColumns({ columns: ["title", "secret"] }, ["secret"])).toEqual(["title"]);
+  });
+
+  it("adds relation keys after the plain columns", () => {
+    const columns = expectedColumns({
+      columns: ["title"],
+      relation: { author: { column: ["name"] } },
+    });
+
+    expect(columns).toEqual(["title", "author"]);
+  });
+
+  it("flattens nested relations the way restructureData writes them", () => {
+    const columns = expectedColumns({
+      columns: ["title"],
+      relation: {
+        author: {
+          column: ["name"],
+          relation: { publisher: { column: ["name"] } },
+        },
+      },
+    });
+
+    expect(columns).toEqual(["title", "author", "publisher"]);
+  });
+
+  it("adds custom columns last", () => {
+    const columns = expectedColumns({
+      columns: ["title"],
+      customColumns: { slug: { column: () => "x" } },
+    });
+
+    expect(columns).toEqual(["title", "slug"]);
+  });
+
+  it("does not repeat a name shared by a column and a relation", () => {
+    const columns = expectedColumns({
+      columns: ["author"],
+      relation: { author: { column: ["name"] } },
+    });
+
+    expect(columns).toEqual(["author"]);
+  });
+
+  it("tolerates a config without relations or custom columns", () => {
+    expect(expectedColumns({ columns: ["title"] })).toEqual(["title"]);
+  });
+
+  it("matches the keys restructureData produces when every field is populated", async () => {
+    const config = {
+      columns: ["title"],
+      relation: { author: { column: ["name"] } },
+      customColumns: { slug: { column: () => "a-slug" } },
+    };
+    const rows = await restructureData([{ title: "Hi", author: { name: "Ada" } }], config, uid, {});
+
+    expect(Object.keys(rows[0])).toEqual(expectedColumns(config));
+  });
+
+  it("keeps columns that are null across every row", async () => {
+    const config = { columns: ["title", "subtitle"] };
+    const rows = await restructureData([{ title: "Hi" }], config, uid, {});
+
+    expect(Object.keys(rows[0])).toEqual(["title"]);
+    expect(expectedColumns(config)).toEqual(["title", "subtitle"]);
   });
 });

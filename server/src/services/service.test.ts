@@ -293,3 +293,72 @@ describe("row count", () => {
     expect(calls.count[0].filters).toEqual({ title: { $eq: "a" } });
   });
 });
+
+describe("column set", () => {
+  const columnUid = "api::article.article";
+
+  const spyStrapi = (
+    contentTypeConfig: Record<string, unknown>,
+    rows: any[],
+    ignore?: string[],
+  ) => {
+    const strapi = {
+      config: { get: () => ({ config: { [columnUid]: contentTypeConfig }, ignore }) },
+      contentTypes: {
+        [columnUid]: {
+          kind: "collectionType",
+          attributes: { title: { type: "string" }, subtitle: { type: "string" } },
+        },
+      },
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+      documents: () => ({
+        findMany: async () => rows,
+        count: async () => rows.length,
+      }),
+      plugin: () => ({
+        service: () => ({
+          find: async () => [{ name: "English (en)", code: "en" }],
+          getDefaultLocale: async () => "en",
+          setIsDefault: async (input: any[]) => input,
+        }),
+      }),
+    } as unknown as Core.Strapi;
+
+    return strapi;
+  };
+
+  it("reports a column that is null on the visible page", async () => {
+    const strapi = spyStrapi({ columns: ["title", "subtitle"] }, [{ title: "Hi" }]);
+
+    const result = await service({ strapi }).getTableData(fakeCtx({ uid: columnUid }));
+
+    expect(result.columns).toEqual(["title", "subtitle"]);
+  });
+
+  it("reports columns even when the page is empty", async () => {
+    const strapi = spyStrapi({ columns: ["title", "subtitle"] }, []);
+
+    const result = await service({ strapi }).getTableData(fakeCtx({ uid: columnUid }));
+
+    expect(result.columns).toEqual(["title", "subtitle"]);
+  });
+
+  it("honours ignore in the reported columns", async () => {
+    const strapi = spyStrapi({ columns: ["title", "subtitle"] }, [{ title: "Hi" }], ["subtitle"]);
+
+    const result = await service({ strapi }).getTableData(fakeCtx({ uid: columnUid }));
+
+    expect(result.columns).toEqual(["title"]);
+  });
+
+  it("exports a column that is null in every row", async () => {
+    const strapi = spyStrapi({ columns: ["title", "subtitle"] }, [{ title: "Hi" }]);
+
+    const csv = await service({ strapi }).downloadCSV(
+      fakeCtx({ uid: columnUid, sortOrder: ["title", "subtitle"] }),
+    );
+
+    expect(csv.toString()).toContain("Title,Subtitle");
+    expect(csv.toString()).toContain("Hi,");
+  });
+});
