@@ -5,6 +5,8 @@ import {
   restructureObject,
   validateFilter,
   getDefaultLocale,
+  toCSVRow,
+  CSV_LINE_BREAK,
   type CSVExporterPlugin,
 } from '../utils';
 
@@ -127,6 +129,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         dateFormat,
         timeZone: configTimeZone,
         ignore,
+        escapeFormulas = true,
       } = strapi.config.get<CSVExporterPlugin>('csv-exporter');
       const uid = ctx.query.uid as UID.ContentType;
       const sortOrder = ctx.query.sortOrder as string[];
@@ -182,19 +185,13 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       );
 
       // Create CSV content
-      let csvContent = headerRestructure.join(',') + '\n';
+      const csvOptions = { escapeFormulas };
+      let csvContent = toCSVRow(headerRestructure, csvOptions) + CSV_LINE_BREAK;
 
       // Add data rows to CSV
       csvData.forEach((row) => {
-        const csvRow = sortedArray
-          .map((header) => {
-            // Handle values with commas by wrapping them in quotes
-            const value =
-              row[header] !== undefined && row[header] !== null ? row[header].toString() : '';
-            return value.includes(',') ? `"${value}"` : value;
-          })
-          .join(',');
-        csvContent += csvRow + '\n';
+        const values = sortedArray.map((header) => row[header]);
+        csvContent += toCSVRow(values, csvOptions) + CSV_LINE_BREAK;
       });
 
       // Set response headers

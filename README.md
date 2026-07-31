@@ -43,7 +43,7 @@ _Minimum Strapi Version needed: v5_
 
 ```javascript
 module.exports = {
-  'csv-exporter': {
+  "csv-exporter": {
     enabled: true,
   },
 };
@@ -109,6 +109,10 @@ module.exports = (): CSVExporterPlugin => ({
   timeZone: '+00:00', // default
   // Optional: Fields to globally ignore in exports
   ignore: [], // default
+  // Optional: Protect against CSV injection by prefixing values that a spreadsheet would
+  // evaluate as a formula (values starting with =, +, -, @, tab or CR) with a single quote.
+  // Plain numbers (-5, +3.2) are left untouched
+  escapeFormulas: true, // default
 });
 ```
 

@@ -1,6 +1,6 @@
-import { TZDate } from '@date-fns/tz';
-import type { UID } from '@strapi/strapi';
-import { parseISO, format, isValid } from 'date-fns';
+import { TZDate } from "@date-fns/tz";
+import type { UID } from "@strapi/strapi";
+import { parseISO, format, isValid } from "date-fns";
 
 export interface RelationConfig {
   column: string[];
@@ -16,7 +16,7 @@ export interface ContentTypeConfig {
   };
   dropdownLabel?: string;
   filter?: Record<string, any>;
-  status?: 'draft' | 'published';
+  status?: "draft" | "published";
   customColumns?: {
     [key: string]: {
       column: (item: any, uid: UID.ContentType) => string;
@@ -32,6 +32,7 @@ export interface CSVExporterPlugin {
   dateFormat?: string;
   timeZone?: string;
   ignore?: string[];
+  escapeFormulas?: boolean;
   config: AtLeastOne<Record<UID.ContentType, ContentTypeConfig>>;
 }
 
@@ -56,18 +57,18 @@ export const restructureObject = async (
   config: ContentTypeConfig,
   filter?: Record<string, any>,
   limit?: number,
-  offset?: number
+  offset?: number,
 ) => {
   const filters = {
-    ...(filter || {}),
+    ...filter,
   };
 
   const restructuredObject = {
     fields: config.columns || undefined,
     filters,
-    status: config.status || 'draft',
+    status: config.status || "draft",
     populate: {},
-    sort: 'id:asc',
+    sort: "id:asc",
     limit: limit,
     offset: offset,
   };
@@ -80,7 +81,7 @@ export const restructureData = async (
   data: any,
   config: ContentTypeConfig,
   uid: UID.ContentType,
-  options: { dateFormat?: string; timeZone?: string; ignore?: string[] }
+  options: { dateFormat?: string; timeZone?: string; ignore?: string[] },
 ): Promise<Record<string, string>[]> => {
   return data.map((item: Record<string, any>) => {
     const restructuredItem = {};
@@ -91,13 +92,13 @@ export const restructureData = async (
       if (key in item) {
         if (isISODateString(item[key])) {
           restructuredItem[key] = format(
-            new TZDate(item[key], options.timeZone ?? 'Europe/Berlin'),
-            options.dateFormat ?? 'dd.MM.yyyy HH:mm'
+            new TZDate(item[key], options.timeZone ?? "Europe/Berlin"),
+            options.dateFormat ?? "dd.MM.yyyy HH:mm",
           );
         } else if (Array.isArray(item[key]) && item[key].length > 0) {
           restructuredItem[key] = item[key]
-            .filter((e) => typeof e === 'string' || typeof e === 'number' || typeof e === 'boolean')
-            .join(', ');
+            .filter((e) => typeof e === "string" || typeof e === "number" || typeof e === "boolean")
+            .join(", ");
         } else {
           restructuredItem[key] = item[key];
         }
@@ -124,9 +125,9 @@ const parseNestedRelations = (
   item: any,
   relationConfig: RelationConfig,
   result: Record<string, any>,
-  parentKey: string = ''
+  parentKey: string = "",
 ) => {
-  if (!item || typeof item !== 'object') {
+  if (!item || typeof item !== "object") {
     return;
   }
 
@@ -144,7 +145,7 @@ const parseNestedRelations = (
     const nestedCollections: Record<string, string[]> = {};
 
     for (const arrayItem of item) {
-      if (arrayItem && typeof arrayItem === 'object') {
+      if (arrayItem && typeof arrayItem === "object") {
         // Collect primary value
         if (primaryColumn && primaryColumn in arrayItem) {
           primaryValues.push(arrayItem[primaryColumn]);
@@ -175,14 +176,14 @@ const parseNestedRelations = (
     // Set primary values if any (use the parent key for the primary values)
     if (primaryValues.length > 0) {
       const uniquePrimaryValues = [...new Set(primaryValues.filter(Boolean))];
-      result[parentKey] = uniquePrimaryValues.join(', ');
+      result[parentKey] = uniquePrimaryValues.join(", ");
     }
 
     // Set nested relation values (use their own keys)
     for (const [key, values] of Object.entries(nestedCollections)) {
       if (values.length > 0) {
         const uniqueValues = [...new Set(values.filter(Boolean))];
-        result[key] = uniqueValues.join(', ');
+        result[key] = uniqueValues.join(", ");
       }
     }
 
@@ -206,7 +207,7 @@ const parseNestedRelations = (
 };
 
 const isISODateString = (value: any) => {
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
 
   const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
   if (!isoDateRegex.test(value)) return false;
