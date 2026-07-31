@@ -14,8 +14,16 @@ import {
   PageLink,
   NextLink,
   PreviousLink,
-} from '@strapi/design-system';
-import { useEffect, useState } from 'react';
+} from "@strapi/design-system";
+import { useEffect, useState } from "react";
+import { styled } from "styled-components";
+
+const TableWrapper = styled.div`
+  & tbody td:first-of-type {
+    padding-top: ${({ theme }) => theme.spaces[4]};
+    padding-bottom: ${({ theme }) => theme.spaces[4]};
+  }
+`;
 
 interface StrapiTableProps {
   columns: string[]; // Columns in the desired display order
@@ -52,9 +60,9 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
       setWidth(window.innerWidth - 168);
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -67,8 +75,8 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ width: `${width}px` }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <TableWrapper style={{ width: `${width}px` }}>
         <Table colCount={columns.length} rowCount={data.length}>
           <Thead>
             <Tr>
@@ -76,7 +84,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
               {columns.map((column) => (
                 <Th key={column}>
                   <Typography variant="sigma">
-                    {column.charAt(0).toUpperCase() + column.slice(1).replace(/_/g, ' ')}
+                    {column.charAt(0).toUpperCase() + column.slice(1).replace(/_/g, " ")}
                   </Typography>
                 </Th>
               ))}
@@ -88,14 +96,14 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
                 {/* Render data cells in the same order as headers */}
                 {columns.map((column) => (
                   <Td key={column}>
-                    <Typography textColor="neutral800">{row[column] || '-'}</Typography>
+                    <Typography textColor="neutral800">{row[column] || "-"}</Typography>
                   </Td>
                 ))}
               </Tr>
             ))}
           </Tbody>
         </Table>
-      </div>
+      </TableWrapper>
 
       <Flex justifyContent="space-between" alignItems="center">
         <Flex gap={2} alignItems="center">
@@ -130,7 +138,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
                 pages.push(
                   <PageLink key={i} number={i} onClick={() => onPageChange(i)}>
                     {i}
-                  </PageLink>
+                  </PageLink>,
                 );
               }
             } else {
@@ -138,7 +146,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
               pages.push(
                 <PageLink key={1} number={1} onClick={() => onPageChange(1)}>
                   1
-                </PageLink>
+                </PageLink>,
               );
 
               // Show ellipsis if current page is far from start
@@ -146,7 +154,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
                 pages.push(
                   <Typography key="ellipsis-start" variant="pi">
                     ...
-                  </Typography>
+                  </Typography>,
                 );
               }
 
@@ -158,7 +166,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
                 pages.push(
                   <PageLink key={i} number={i} onClick={() => onPageChange(i)}>
                     {i}
-                  </PageLink>
+                  </PageLink>,
                 );
               }
 
@@ -167,7 +175,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
                 pages.push(
                   <Typography key="ellipsis-end" variant="pi">
                     ...
-                  </Typography>
+                  </Typography>,
                 );
               }
 
@@ -179,7 +187,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
                   onClick={() => onPageChange(totalPages)}
                 >
                   {totalPages}
-                </PageLink>
+                </PageLink>,
               );
             }
 
