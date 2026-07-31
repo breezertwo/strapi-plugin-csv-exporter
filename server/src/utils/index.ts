@@ -4,4 +4,5 @@ export * from './errors';
 export * from './data-format';
 export * from './validate-filter';
 export * from './locale';
+export * from './permissions';
 export * from './query';

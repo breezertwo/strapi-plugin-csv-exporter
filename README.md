@@ -22,6 +22,7 @@ A highly configurable Strapi plugin that allows you to export your content types
 - **Drag & Drop Column Reordering**: Reorder columns for both table display and CSV output in the Admin Panel
 - **i18n Support**: Export your content types based on your configured locales
 - **Permission Management**: Select which users can use the plugin with a specific permission
+- **Respects Admin Permissions**: Users can only export the collections and fields their role is allowed to read
 - **Custom Filtering**: Apply optional filters as you would do with Strapi Document API
 - **TypeScript Support**: Write the configuration file in TypeScript for better type safety
 
@@ -123,6 +124,18 @@ module.exports = (): CSVExporterPlugin => ({
 4. **Build and restart** your Strapi application
 
 5. **Add Permission** Enable your users to use the plugin in the permissions settings
+
+## 🔒 Permissions
+
+Two things must line up for a user to export a collection:
+
+1. The **CSV Exporter → Usage** permission, which grants access to the plugin itself.
+2. The regular **Content Manager read** permission for that collection.
+
+The export is scoped to what the user is already allowed to see in the Content Manager:
+collections they cannot read are hidden from the dropdown and rejected with a `403`, and any
+field their role may not read is left empty in the output — even if it is listed in `columns`.
+Granting only the Usage permission is therefore not enough.
 
 ## 🖥️ Usage
 

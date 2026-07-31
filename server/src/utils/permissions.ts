@@ -1,3 +1,7 @@
+import { errors } from '@strapi/utils';
+import type { Core, UID } from '@strapi/strapi';
+import type { Context } from 'koa';
+
 export const permissions = [
   {
     section: 'plugins',
@@ -6,3 +10,58 @@ export const permissions = [
     uid: 'usage',
   },
 ];
+
+export interface PermissionChecker {
+  cannot: { read: () => boolean };
+  sanitizeOutput: (data: Record<string, any>) => Promise<Record<string, any>>;
+}
+
+const createChecker = (
+  strapi: Core.Strapi,
+  ctx: Context,
+  uid: UID.ContentType
+): PermissionChecker | null => {
+  const userAbility = ctx.state?.userAbility;
+
+  if (!userAbility) {
+    return null;
+  }
+
+  try {
+    return strapi
+      .plugin('content-manager')
+      ?.service('permission-checker')
+      ?.create({ userAbility, model: uid });
+  } catch {
+    return null;
+  }
+};
+
+export const canReadContentType = (
+  strapi: Core.Strapi,
+  ctx: Context,
+  uid: UID.ContentType
+): boolean => {
+  const checker = createChecker(strapi, ctx, uid);
+
+  return checker ? !checker.cannot.read() : false;
+};
+
+export const assertCanReadContentType = (
+  strapi: Core.Strapi,
+  ctx: Context,
+  uid: UID.ContentType
+): PermissionChecker => {
+  const checker = createChecker(strapi, ctx, uid);
+
+  if (!checker || checker.cannot.read()) {
+    throw new errors.ForbiddenError(`You are not allowed to read "${uid}".`);
+  }
+
+  return checker;
+};
+
+export const sanitizeRows = async (
+  checker: PermissionChecker,
+  rows: Record<string, any>[]
+): Promise<Record<string, any>[]> => Promise.all(rows.map((row) => checker.sanitizeOutput(row)));
