@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, useFetchClient } from "@strapi/strapi/admin";
 import { format } from "date-fns";
 import {

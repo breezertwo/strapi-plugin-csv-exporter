@@ -15,8 +15,7 @@ import {
   NextLink,
   PreviousLink,
 } from '@strapi/design-system';
-import { Layouts } from '@strapi/strapi/admin';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface StrapiTableProps {
   columns: string[]; // Columns in the desired display order
@@ -39,7 +38,6 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
   onPageChange,
   onPerPageChange,
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(window.innerWidth - 168);
   const totalPages = Math.ceil(totalRows / perPage);
   const perPageOptions = [1, 10, 20, 50, 100, 250];
@@ -99,7 +97,7 @@ const StrapiTable: React.FC<StrapiTableProps> = ({
         </Table>
       </div>
 
-      <Flex ref={ref} justifyContent="space-between" alignItems="center">
+      <Flex justifyContent="space-between" alignItems="center">
         <Flex gap={2} alignItems="center">
           <Typography variant="omega">Items per page:</Typography>
           <SingleSelect

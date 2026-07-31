@@ -95,7 +95,7 @@ export const restructureData = async (
       if (key in item) {
         if (isISODateString(item[key])) {
           restructuredItem[key] = format(
-            new TZDate(item[key], options.timeZone ?? "Europe/Berlin"),
+            new TZDate(item[key], options.timeZone ?? "+00:00"),
             options.dateFormat ?? "dd.MM.yyyy HH:mm",
           );
         } else if (Array.isArray(item[key]) && item[key].length > 0) {
