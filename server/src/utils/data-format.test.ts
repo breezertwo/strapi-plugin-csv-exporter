@@ -123,9 +123,30 @@ describe('expectedColumns', () => {
   });
 });
 
-describe('non-scalar values', () => {
+describe('non-datetime values', () => {
   const run = (value: any, options = {}) =>
     restructureData([{ v: value }], { columns: ['v'] }, uid, options);
+
+  it('formats a date-only field without shifting the day', async () => {
+    const result = await run('2024-01-15', { timeZone: 'Pacific/Kiritimati' });
+
+    expect(result[0].v).toBe('15.01.2024');
+  });
+
+  it('formats a time-only field', async () => {
+    expect((await run('10:30:00.000'))[0].v).toBe('10:30');
+  });
+
+  it('honours dateOnlyFormat and timeFormat', async () => {
+    expect((await run('2024-01-15', { dateOnlyFormat: 'yyyy/MM/dd' }))[0].v).toBe('2024/01/15');
+    expect((await run('10:30:00.000', { timeFormat: 'HH:mm:ss' }))[0].v).toBe('10:30:00');
+  });
+
+  it('still formats full datetimes with the timezone', async () => {
+    const result = await run('2024-01-15T23:30:00.000Z', { timeZone: 'Europe/Berlin' });
+
+    expect(result[0].v).toBe('16.01.2024 00:30');
+  });
 
   it('serializes objects as JSON instead of [object Object]', async () => {
     expect((await run({ a: 1 }))[0].v).toBe('{"a":1}');

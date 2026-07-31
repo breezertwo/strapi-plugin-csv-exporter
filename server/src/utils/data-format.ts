@@ -30,6 +30,8 @@ type AtLeastOne<T> = {
 
 export interface CSVExporterPlugin {
   dateFormat?: string;
+  dateOnlyFormat?: string;
+  timeFormat?: string;
   timeZone?: string;
   ignore?: string[];
   escapeFormulas?: boolean;
@@ -98,7 +100,13 @@ export const restructureData = async (
   data: any,
   config: ContentTypeConfig,
   uid: UID.ContentType,
-  options: { dateFormat?: string; timeZone?: string; ignore?: string[] },
+  options: {
+    dateFormat?: string;
+    dateOnlyFormat?: string;
+    timeFormat?: string;
+    timeZone?: string;
+    ignore?: string[];
+  },
 ): Promise<Record<string, string>[]> => {
   return data.map((item: Record<string, any>) => {
     const restructuredItem = {};
@@ -113,6 +121,16 @@ export const restructureData = async (
           restructuredItem[key] = format(
             new TZDate(item[key], options.timeZone ?? "+00:00"),
             options.dateFormat ?? "dd.MM.yyyy HH:mm",
+          );
+        } else if (isISODateOnlyString(item[key])) {
+          restructuredItem[key] = format(
+            parseISO(item[key]),
+            options.dateOnlyFormat ?? "dd.MM.yyyy",
+          );
+        } else if (isISOTimeOnlyString(item[key])) {
+          restructuredItem[key] = format(
+            parseISO(`1970-01-01T${item[key]}`),
+            options.timeFormat ?? "HH:mm",
           );
         } else if (Array.isArray(item[key])) {
           const entries = item[key];
@@ -231,9 +249,15 @@ const parseNestedRelations = (
 };
 
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_TIME = /^\d{2}:\d{2}(:\d{2})?(\.\d{1,3})?$/;
 
-const isISODateString = (value: any) =>
-  typeof value === "string" && ISO_DATE_TIME.test(value) && isValid(parseISO(value));
+const matchesIso = (value: any, pattern: RegExp, prefix = "") =>
+  typeof value === "string" && pattern.test(value) && isValid(parseISO(`${prefix}${value}`));
+
+const isISODateString = (value: any) => matchesIso(value, ISO_DATE_TIME);
+const isISODateOnlyString = (value: any) => matchesIso(value, ISO_DATE);
+const isISOTimeOnlyString = (value: any) => matchesIso(value, ISO_TIME, "1970-01-01T");
 
 const isPlainObject = (value: any) =>
   value !== null && typeof value === "object" && !(value instanceof Date);

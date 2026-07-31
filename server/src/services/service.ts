@@ -57,7 +57,14 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
   },
   async getTableData(ctx: Context) {
     try {
-      const { config, dateFormat, timeZone: configTimeZone, ignore } = getPluginConfig(strapi);
+      const {
+        config,
+        dateFormat,
+        dateOnlyFormat,
+        timeFormat,
+        timeZone: configTimeZone,
+        ignore,
+      } = getPluginConfig(strapi);
 
       const uid = ctx.query.uid as UID.ContentType;
 
@@ -85,6 +92,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       const data = await restructureData(sanitized.rows, config[uid], uid, {
         dateFormat,
+        dateOnlyFormat,
+        timeFormat,
         timeZone: configTimeZone ?? timeZone,
         ignore,
       });
@@ -116,6 +125,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       const {
         config,
         dateFormat,
+        dateOnlyFormat,
+        timeFormat,
         timeZone: configTimeZone,
         ignore,
         escapeFormulas,
@@ -144,6 +155,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
 
       const csvData = await restructureData(sanitized.rows, config[uid], uid, {
         dateFormat,
+        dateOnlyFormat,
+        timeFormat,
         ignore,
         timeZone: configTimeZone ?? timeZone,
       });
