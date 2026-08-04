@@ -10,6 +10,7 @@ import {
   getDefaultLocale,
   getLocaleOptions,
   isLocalizedContentType,
+  withLocaleField,
   getPluginConfig,
   assertExportableUid,
   assertCanReadContentType,
@@ -86,7 +87,11 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         strapi.contentTypes[uid].attributes
       );
 
-      const query = await restructureObject(config[uid], validatedFilters, limit, offset);
+      const query = withLocaleField(
+        strapi,
+        uid,
+        await restructureObject(config[uid], validatedFilters, limit, offset)
+      );
 
       const response = await strapi.documents(uid).findMany({
         ...query,
@@ -156,7 +161,11 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         strapi.contentTypes[uid].attributes
       );
 
-      const query = await restructureObject(config[uid], validatedFilters);
+      const query = withLocaleField(
+        strapi,
+        uid,
+        await restructureObject(config[uid], validatedFilters)
+      );
       const csvOptions = { escapeFormulas };
 
       const fetchPage = (limit: number, offset: number) =>

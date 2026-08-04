@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Core } from '@strapi/strapi';
 
-import { FALLBACK_LOCALE, findLocales, getDefaultLocale, getLocaleOptions } from './locale';
+import {
+  FALLBACK_LOCALE,
+  findLocales,
+  getDefaultLocale,
+  getLocaleOptions,
+  withLocaleField,
+} from './locale';
 
 const log = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() };
 
@@ -36,6 +42,31 @@ const throwingI18n = () =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe('withLocaleField', () => {
+  const withLocalization = (localized: boolean) =>
+    ({
+      log,
+      contentTypes: { 'api::article.article': {} },
+      plugin: () => ({ service: () => ({ isLocalizedContentType: () => localized }) }),
+    }) as unknown as Core.Strapi;
+
+  it('adds locale so the permission checker can match the row', () => {
+    const query = withLocaleField(withLocalization(true), 'api::article.article', {
+      fields: ['title'],
+      limit: 10,
+    });
+
+    expect(query).toEqual({ fields: ['title', 'locale'], limit: 10 });
+  });
+
+  it.each([
+    ['the content type is not localized', withLocalization(false), ['title']],
+    ['locale is already exported', withLocalization(true), ['title', 'locale']],
+  ])('leaves the fields alone when %s', (_label, strapi, fields) => {
+    expect(withLocaleField(strapi, 'api::article.article', { fields })).toEqual({ fields });
+  });
 });
 
 describe('findLocales', () => {
