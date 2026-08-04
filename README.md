@@ -21,10 +21,8 @@ A highly configurable Strapi plugin that allows you to export your content types
 - **Flexible Configuration**: Configure which content types, collumns & relations are available for export
 - **Drag & Drop Column Reordering**: Reorder columns for both table display and CSV output in the Admin Panel
 - **i18n Support**: Export your content types based on your configured locales
-- **Permission Management**: Select which users can use the plugin with a specific permission
-- **Respects Admin Permissions**: Users can only export the collections and fields their role is allowed to read
+- **Permissions**: Enable for selected useres only and respects current user permissions per field & locale
 - **Custom Filtering**: Apply optional filters as you would do with Strapi Document API
-- **TypeScript Support**: Write the configuration file in TypeScript for better type safety
 
 <img src="https://i.postimg.cc/85fbvXK6/screenshot.png" alt="Strapi Plugin CSV Exporter screenshot" width="1000">
 
@@ -34,8 +32,6 @@ A highly configurable Strapi plugin that allows you to export your content types
 npm install strapi-plugin-csv-exporter
 ```
 
-_Minimum Strapi Version needed: v5_
-
 ## 🚀 Quick Start
 
 1. **Install the plugin**
@@ -44,7 +40,7 @@ _Minimum Strapi Version needed: v5_
 
 ```javascript
 module.exports = {
-  'csv-exporter': {
+  "csv-exporter": {
     enabled: true,
   },
 };
@@ -135,27 +131,21 @@ module.exports = (): CSVExporterPlugin => ({
 
 For a user to export a collection set up the following permissions:
 
-1. The **CSV Exporter → Usage** permission, which grants access to the plugin itself.
-2. The regular **Content Manager read** permission for that collection.
-
-The export is scoped to what the user is already allowed to see in the Content Manager:
-collections they cannot read are hidden, and any field their role may not read is left out entirely.
+1. **CSV Exporter → Usage** permission, which grants access to the plugin itself
+2. **Content Manager read** permissions are applied like in the list and edit views
 
 ## 🖥️ Usage
 
 ### Accessing the Plugin
 
-1. Log into your Strapi admin panel
-2. Enable the plugin for your users in the permissions settings
-3. Navigate to **CSV Exporter** in your side bar panel
-4. The plugin interface will load with your configured content types in the dropdown
+1. Navigate to **CSV Exporter** in your side bar panel
+2. The plugin interface will load with your configured content types in the dropdown
 
 ### Using the Interface
 
 #### 1. Select Content Type
 
 - Use the dropdown to select which content type to export
-- Only configured content types will appear in the list
 - The table shows a preview of your data
 
 #### 2. Manage Columns
@@ -180,6 +170,8 @@ collections they cannot read are hidden, and any field their role may not read i
 This project is licensed under the MIT License — see the [LICENSE](LICENSE.md) file for details.
 
 If you find this plugin helpful, please consider:
+
+---
 
 - ⭐ **Starring** the repository
 - 🐛 **Reporting** bugs and issues
