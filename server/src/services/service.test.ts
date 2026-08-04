@@ -314,8 +314,9 @@ describe('row count', () => {
     await service({ strapi }).getTableData(fakeCtx({ uid: filteredUid, limit: '5', offset: '10' }));
 
     expect(calls.count[0]).not.toHaveProperty('limit');
-    expect(calls.count[0]).not.toHaveProperty('offset');
-    expect(calls.findMany[0]).toMatchObject({ limit: 5, offset: 10 });
+    expect(calls.count[0]).not.toHaveProperty('start');
+    expect(calls.findMany[0]).toMatchObject({ limit: 5, start: 10 });
+    expect(calls.findMany[0]).not.toHaveProperty('offset');
   });
 
   it('drops filters on fields that do not exist', async () => {
@@ -535,7 +536,7 @@ describe('streamed export', () => {
 
   const spyStrapi = (total: number, pluginConfig: Record<string, unknown> = {}) => {
     const rows = Array.from({ length: total }, (_, i) => ({ title: `row${i}` }));
-    const calls: { limit: number; offset: number }[] = [];
+    const calls: { limit: number; start: number }[] = [];
 
     const strapi = {
       config: {
@@ -546,9 +547,9 @@ describe('streamed export', () => {
       },
       log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
       documents: () => ({
-        findMany: async ({ limit, offset }: any) => {
-          calls.push({ limit, offset });
-          return rows.slice(offset, offset + limit);
+        findMany: async ({ limit, start }: any) => {
+          calls.push({ limit, start });
+          return rows.slice(start, start + limit);
         },
         count: async () => rows.length,
       }),
@@ -567,9 +568,9 @@ describe('streamed export', () => {
     await readCsv(await download(strapi));
 
     expect(calls).toEqual([
-      { limit: 5, offset: 0 },
-      { limit: 5, offset: 5 },
-      { limit: 5, offset: 10 },
+      { limit: 5, start: 0 },
+      { limit: 5, start: 5 },
+      { limit: 5, start: 10 },
     ]);
   });
 
@@ -628,7 +629,7 @@ describe('column set does not depend on the data', () => {
       },
       log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
       documents: () => ({
-        findMany: async ({ limit, offset }: any) => rows.slice(offset, offset + limit),
+        findMany: async ({ limit, start }: any) => rows.slice(start, start + limit),
         count: async () => rows.length,
       }),
       plugin: fakePlugin({

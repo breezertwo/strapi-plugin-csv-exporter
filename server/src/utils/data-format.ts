@@ -62,7 +62,7 @@ export const restructureObject = async (
   config: ContentTypeConfig,
   filter?: Record<string, any>,
   limit?: number,
-  offset?: number
+  start?: number
 ) => {
   const filters = {
     ...filter,
@@ -75,7 +75,7 @@ export const restructureObject = async (
     populate: {},
     sort: 'id:asc',
     limit: limit,
-    offset: offset,
+    start: start,
   };
 
   restructuredObject.populate = processRelations(config.relation || {});

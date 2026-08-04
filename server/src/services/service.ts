@@ -172,8 +172,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
       );
       const csvOptions = { escapeFormulas };
 
-      const fetchPage = (limit: number, offset: number) =>
-        strapi.documents(uid).findMany({ ...query, locale, limit, offset });
+      const fetchPage = (limit: number, start: number) =>
+        strapi.documents(uid).findMany({ ...query, locale, limit, start });
 
       const columns = orderColumns(
         await permittedColumns(
