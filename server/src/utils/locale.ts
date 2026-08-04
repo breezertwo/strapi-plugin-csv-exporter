@@ -33,12 +33,7 @@ export const isLocalizedContentType = (strapi: Core.Strapi, uid: string): boolea
   }
 };
 
-/**
- * i18n scopes the read permission per locale, and the permission checker evaluates that condition
- * against the row it sanitizes. A row fetched without its `locale` therefore fails the condition
- * and comes back with every localized field stripped, so ask for the column even when it is not
- * exported.
- */
+
 export const withLocaleField = <T extends { fields?: string[] }>(
   strapi: Core.Strapi,
   uid: string,

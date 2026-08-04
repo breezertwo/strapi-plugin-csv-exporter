@@ -10,11 +10,11 @@ import {
   getDefaultLocale,
   getLocaleOptions,
   isLocalizedContentType,
-  withLocaleField,
   getPluginConfig,
   assertExportableUid,
   assertCanReadContentType,
   canReadContentType,
+  scopeQueryToPermissions,
   sanitizeRows,
   permittedColumns,
   isApplicationError,
@@ -87,9 +87,11 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         strapi.contentTypes[uid].attributes
       );
 
-      const query = withLocaleField(
+      const query = await scopeQueryToPermissions(
         strapi,
+        ctx,
         uid,
+        permissionChecker,
         await restructureObject(config[uid], validatedFilters, limit, offset)
       );
 
@@ -161,9 +163,11 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         strapi.contentTypes[uid].attributes
       );
 
-      const query = withLocaleField(
+      const query = await scopeQueryToPermissions(
         strapi,
+        ctx,
         uid,
+        permissionChecker,
         await restructureObject(config[uid], validatedFilters)
       );
       const csvOptions = { escapeFormulas };
