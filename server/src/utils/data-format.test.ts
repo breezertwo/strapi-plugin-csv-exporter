@@ -123,6 +123,68 @@ describe('expectedColumns', () => {
   });
 });
 
+describe('relation with multiple configured columns', () => {
+  it('splits every configured column into its own cell, not just the first', async () => {
+    const config = {
+      columns: ['title'],
+      relation: { category: { column: ['name', 'id', 'slug'] } },
+    };
+    const rows = await restructureData(
+      [{ title: 'Hi', category: { id: 3, name: 'News', slug: 'news' } }],
+      config,
+      uid,
+      {}
+    );
+
+    expect(rows[0]).toEqual({
+      title: 'Hi',
+      'category:name': 'News',
+      'category:id': 3,
+      'category:slug': 'news',
+    });
+    expect(expectedColumns(config)).toEqual([
+      'title',
+      'category:name',
+      'category:id',
+      'category:slug',
+    ]);
+  });
+
+  it('keeps writing to the relation key when only one column is configured', async () => {
+    const config = {
+      columns: ['title'],
+      relation: { category: { column: ['id'] } },
+    };
+    const rows = await restructureData([{ title: 'Hi', category: { id: 3 } }], config, uid, {});
+
+    expect(rows[0]).toEqual({ title: 'Hi', category: 3 });
+    expect(expectedColumns(config)).toEqual(['title', 'category']);
+  });
+
+  it('collects each configured column across every item in a to-many relation', async () => {
+    const config = {
+      columns: ['title'],
+      relation: { tags: { column: ['name', 'id'] } },
+    };
+    const rows = await restructureData(
+      [
+        {
+          title: 'Hi',
+          tags: [
+            { id: 1, name: 'a' },
+            { id: 2, name: 'b' },
+          ],
+        },
+      ],
+      config,
+      uid,
+      {}
+    );
+
+    expect(rows[0]).toEqual({ title: 'Hi', 'tags:name': 'a, b', 'tags:id': '1, 2' });
+  });
+});
+
 describe('non-datetime values', () => {
   const run = (value: any, options = {}) =>
     restructureData([{ v: value }], { columns: ['v'] }, uid, options);

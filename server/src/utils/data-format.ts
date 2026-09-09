@@ -82,9 +82,13 @@ export const restructureObject = async (
   return restructuredObject;
 };
 
+// A relation with a single configured column keeps writing to its own key,
+// a relation with multiple configured columns is split
 const relationColumns = (relations: { [key: string]: RelationConfig } = {}): string[] =>
   Object.entries(relations).flatMap(([key, relation]) => [
-    key,
+    ...((relation.column?.length ?? 0) > 1
+      ? relation.column.map((column) => `${key}:${column}`)
+      : [key]),
     ...relationColumns(relation.relation),
   ]);
 
@@ -175,8 +179,9 @@ const parseNestedRelations = (
     return;
   }
 
-  // Get the primary column value for this level
-  const primaryColumn = relationConfig.column[0];
+  // `parentKey` (e.g. "author") or multiple (e.g. "author:name", "author:id").
+  const columns = relationConfig.column ?? [];
+  const cellKey = (column: string) => (columns.length > 1 ? `${parentKey}:${column}` : parentKey);
 
   // Handle arrays
   if (Array.isArray(item)) {
@@ -184,15 +189,18 @@ const parseNestedRelations = (
       return;
     }
 
-    // For arrays, we need to collect all primary values and nested relations
-    const primaryValues: string[] = [];
+    // For arrays: collect all column values (per cell) and nested relations
+    const columnCollections: Record<string, any[]> = {};
     const nestedCollections: Record<string, string[]> = {};
 
     for (const arrayItem of item) {
       if (arrayItem && typeof arrayItem === 'object') {
-        // Collect primary value
-        if (primaryColumn && primaryColumn in arrayItem) {
-          primaryValues.push(arrayItem[primaryColumn]);
+        // Collect each configured column's value
+        for (const column of columns) {
+          if (column in arrayItem) {
+            const key = cellKey(column);
+            (columnCollections[key] ??= []).push(arrayItem[column]);
+          }
         }
 
         // Collect nested relations
@@ -217,10 +225,12 @@ const parseNestedRelations = (
       }
     }
 
-    // Set primary values if any (use the parent key for the primary values)
-    if (primaryValues.length > 0) {
-      const uniquePrimaryValues = [...new Set(primaryValues.filter(Boolean))];
-      result[parentKey] = uniquePrimaryValues.join(', ');
+    // Set column values if any (one cell per configured column)
+    for (const [key, values] of Object.entries(columnCollections)) {
+      if (values.length > 0) {
+        const uniqueValues = [...new Set(values.filter(Boolean))];
+        result[key] = uniqueValues.join(', ');
+      }
     }
 
     // Set nested relation values (use their own keys)
@@ -235,12 +245,14 @@ const parseNestedRelations = (
   }
 
   // Handle single objects
-  // First, get the primary column value (use parent key)
-  if (primaryColumn && primaryColumn in item) {
-    result[parentKey] = item[primaryColumn];
+  // Get each configured column's value
+  for (const column of columns) {
+    if (column in item) {
+      result[cellKey(column)] = item[column];
+    }
   }
 
-  // Then, recursively parse nested relations (use their own keys)
+  // Recursively parse nested relations
   if (relationConfig.relation) {
     for (const [nestedKey, nestedConfig] of Object.entries(relationConfig.relation)) {
       if (nestedKey in item) {
