@@ -167,11 +167,12 @@ export const permittedColumns = async (
   checker: PermissionChecker,
   columns: string[],
   attributes: Record<string, any> = {},
+  excludePrivateFields = false,
 ): Promise<string[]> => {
   const candidates = columns.filter((column) => {
     const attribute = attributes[column];
 
-    return !attribute?.private && attribute?.type !== "password";
+    return (!excludePrivateFields || !attribute?.private) && attribute?.type !== "password";
   });
 
   const fields = candidates.filter((column) => attributes[column]);

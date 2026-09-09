@@ -101,6 +101,9 @@ module.exports = (): CSVExporterPlugin => ({
   },
   // Optional: Fields to globally ignore in exports
   ignore: [], // default
+  // Optional: Exclude fields marked `private: true` in the content type schema from exports.
+  // Password fields are always excluded regardless of this setting
+  excludePrivateFields: false, // default
   // Optional: Global date formatting for all fields that are a valid ISO Date
   dateFormat: 'dd.MM.yyyy HH:mm', // default
   // Optional: Formatting for date-only fields

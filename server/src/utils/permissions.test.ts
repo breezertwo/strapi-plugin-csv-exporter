@@ -123,9 +123,15 @@ describe("permittedColumns", () => {
     ).resolves.toEqual(["title", "createdAt"]);
   });
 
-  it("drops private and password attributes", async () => {
+  it("drops password attributes but keeps private ones by default", async () => {
     await expect(
       permittedColumns(checker(), ["title", "secret", "password"], attributes),
+    ).resolves.toEqual(["title", "secret"]);
+  });
+
+  it("also drops private attributes when excludePrivateFields is enabled", async () => {
+    await expect(
+      permittedColumns(checker(), ["title", "secret", "password"], attributes, true),
     ).resolves.toEqual(["title"]);
   });
 

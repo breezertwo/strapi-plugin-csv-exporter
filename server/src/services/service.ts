@@ -70,6 +70,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         timeFormat,
         timeZone: configTimeZone,
         ignore,
+        excludePrivateFields,
       } = getPluginConfig(strapi);
 
       const uid = ctx.query.uid as UID.ContentType;
@@ -123,7 +124,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         columns: await permittedColumns(
           permissionChecker,
           expectedColumns(config[uid], ignore),
-          strapi.contentTypes[uid].attributes
+          strapi.contentTypes[uid].attributes,
+          excludePrivateFields
         ),
         data,
         count,
@@ -144,6 +146,7 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         timeFormat,
         timeZone: configTimeZone,
         ignore,
+        excludePrivateFields,
         escapeFormulas,
         bom,
         batchSize,
@@ -179,7 +182,8 @@ const service = ({ strapi }: { strapi: Core.Strapi }) => ({
         await permittedColumns(
           permissionChecker,
           expectedColumns(config[uid], ignore),
-          strapi.contentTypes[uid].attributes
+          strapi.contentTypes[uid].attributes,
+          excludePrivateFields
         ),
         sortOrder
       );

@@ -34,6 +34,7 @@ export interface CSVExporterPlugin {
   timeFormat?: string;
   timeZone?: string;
   ignore?: string[];
+  excludePrivateFields?: boolean;
   escapeFormulas?: boolean;
   bom?: boolean;
   batchSize?: number;
