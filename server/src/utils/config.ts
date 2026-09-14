@@ -7,7 +7,7 @@ export const CONFIG_NAMESPACE = 'csv-exporter';
 const IMPLICIT_COLUMNS = ['id', 'documentId'];
 
 export type ResolvedCSVExporterConfig = CSVExporterPlugin &
-  Required<Pick<CSVExporterPlugin, 'ignore' | 'escapeFormulas' | 'bom'>>;
+  Required<Pick<CSVExporterPlugin, 'ignore' | 'excludePrivateFields' | 'escapeFormulas' | 'bom'>>;
 
 export class MissingConfigError extends Error {
   constructor() {
@@ -29,6 +29,7 @@ export const getPluginConfig = (strapi: Core.Strapi): ResolvedCSVExporterConfig 
   return {
     ...userConfig,
     ignore: userConfig.ignore ?? [],
+    excludePrivateFields: userConfig.excludePrivateFields ?? false,
     escapeFormulas: userConfig.escapeFormulas ?? true,
     bom: userConfig.bom ?? true,
   };
