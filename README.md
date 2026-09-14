@@ -40,7 +40,7 @@ npm install strapi-plugin-csv-exporter
 
 ```javascript
 module.exports = {
-  "csv-exporter": {
+  'csv-exporter': {
     enabled: true,
   },
 };
@@ -73,9 +73,13 @@ module.exports = (): CSVExporterPlugin => ({
       columns: ['title', 'createdAt'],
 
       // Relations as column (optional)
+      // A single configured column is exported under the relation's own name (e.g. "author").
+      // Configuring multiple columns splits them into one cell per column (e.g. "author:name", "author:id").
+      // Multiple related records are combined into comma-separated lists (e.g. "author:name": "John, Jane", "author:id": "1, 2").
+      // Lists preserve record order; missing values leave empty positions.
       relation: {
         author: {
-          column: ['name'],
+          column: ['name', 'id'],
         }
       },
 

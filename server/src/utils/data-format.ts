@@ -83,9 +83,13 @@ export const restructureObject = async (
   return restructuredObject;
 };
 
+// A relation with a single configured column keeps writing to its own key,
+// a relation with multiple configured columns is split
 const relationColumns = (relations: { [key: string]: RelationConfig } = {}): string[] =>
   Object.entries(relations).flatMap(([key, relation]) => [
-    key,
+    ...((relation.column?.length ?? 0) > 1
+      ? relation.column.map((column) => `${key}:${column}`)
+      : [key]),
     ...relationColumns(relation.relation),
   ]);
 
@@ -176,8 +180,9 @@ const parseNestedRelations = (
     return;
   }
 
-  // Get the primary column value for this level
-  const primaryColumn = relationConfig.column[0];
+  // `parentKey` (e.g. "author") or multiple (e.g. "author:name", "author:id").
+  const columns = relationConfig.column ?? [];
+  const cellKey = (column: string) => (columns.length > 1 ? `${parentKey}:${column}` : parentKey);
 
   // Handle arrays
   if (Array.isArray(item)) {
@@ -185,63 +190,31 @@ const parseNestedRelations = (
       return;
     }
 
-    // For arrays, we need to collect all primary values and nested relations
-    const primaryValues: string[] = [];
-    const nestedCollections: Record<string, string[]> = {};
+    // Format every related record first so each column retains the same positions,
+    // including duplicates, falsy values, and blanks for missing fields or relations.
+    const rows: Record<string, any>[] = item.map((arrayItem) => {
+      const row: Record<string, any> = {};
+      parseNestedRelations(arrayItem, relationConfig, row, parentKey);
+      return row;
+    });
+    const keys = new Set([...columns.map(cellKey), ...rows.flatMap((row) => Object.keys(row))]);
 
-    for (const arrayItem of item) {
-      if (arrayItem && typeof arrayItem === 'object') {
-        // Collect primary value
-        if (primaryColumn && primaryColumn in arrayItem) {
-          primaryValues.push(arrayItem[primaryColumn]);
-        }
-
-        // Collect nested relations
-        if (relationConfig.relation) {
-          for (const [nestedKey, nestedConfig] of Object.entries(relationConfig.relation)) {
-            if (nestedKey in arrayItem) {
-              const tempResult: Record<string, any> = {};
-              parseNestedRelations(arrayItem[nestedKey], nestedConfig, tempResult, nestedKey);
-
-              // Add collected values to the nested collections
-              for (const [key, value] of Object.entries(tempResult)) {
-                if (!nestedCollections[key]) {
-                  nestedCollections[key] = [];
-                }
-                if (value) {
-                  nestedCollections[key].push(value);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Set primary values if any (use the parent key for the primary values)
-    if (primaryValues.length > 0) {
-      const uniquePrimaryValues = [...new Set(primaryValues.filter(Boolean))];
-      result[parentKey] = uniquePrimaryValues.join(', ');
-    }
-
-    // Set nested relation values (use their own keys)
-    for (const [key, values] of Object.entries(nestedCollections)) {
-      if (values.length > 0) {
-        const uniqueValues = [...new Set(values.filter(Boolean))];
-        result[key] = uniqueValues.join(', ');
-      }
+    for (const key of keys) {
+      result[key] = rows.map((row) => row[key] ?? '').join(', ');
     }
 
     return;
   }
 
   // Handle single objects
-  // First, get the primary column value (use parent key)
-  if (primaryColumn && primaryColumn in item) {
-    result[parentKey] = item[primaryColumn];
+  // Get each configured column's value
+  for (const column of columns) {
+    if (column in item) {
+      result[cellKey(column)] = item[column];
+    }
   }
 
-  // Then, recursively parse nested relations (use their own keys)
+  // Recursively parse nested relations
   if (relationConfig.relation) {
     for (const [nestedKey, nestedConfig] of Object.entries(relationConfig.relation)) {
       if (nestedKey in item) {
