@@ -11,10 +11,7 @@ export default {
         id: `${PLUGIN_ID}.plugin.name`,
         defaultMessage: 'CSV Exporter',
       },
-      Component: async () => {
-        const { App } = await import('./pages/App');
-        return App;
-      },
+      Component: () => import('./pages/App').then((mod) => ({ default: mod.App })),
       permissions: [{ action: 'plugin::csv-exporter.usage', subject: null }],
     });
 
