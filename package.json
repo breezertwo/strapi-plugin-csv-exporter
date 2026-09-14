@@ -1,6 +1,6 @@
 {
   "name": "strapi-plugin-csv-exporter",
-  "version": "5.6.3",
+  "version": "5.6.4",
   "description": "A highly configurable plugin to export your Strapi content as CSV files",
   "keywords": [
     "csv",
