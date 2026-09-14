@@ -189,56 +189,17 @@ const parseNestedRelations = (
       return;
     }
 
-    // For arrays: collect all column values (per cell) and nested relations
-    const columnCollections: Record<string, any[]> = {};
-    const nestedCollections: Record<string, string[]> = {};
+    // Format every related record first so each column retains the same positions,
+    // including duplicates, falsy values, and blanks for missing fields or relations.
+    const rows: Record<string, any>[] = item.map((arrayItem) => {
+      const row: Record<string, any> = {};
+      parseNestedRelations(arrayItem, relationConfig, row, parentKey);
+      return row;
+    });
+    const keys = new Set([...columns.map(cellKey), ...rows.flatMap((row) => Object.keys(row))]);
 
-    for (const arrayItem of item) {
-      if (arrayItem && typeof arrayItem === 'object') {
-        // Collect each configured column's value
-        for (const column of columns) {
-          if (column in arrayItem) {
-            const key = cellKey(column);
-            (columnCollections[key] ??= []).push(arrayItem[column]);
-          }
-        }
-
-        // Collect nested relations
-        if (relationConfig.relation) {
-          for (const [nestedKey, nestedConfig] of Object.entries(relationConfig.relation)) {
-            if (nestedKey in arrayItem) {
-              const tempResult: Record<string, any> = {};
-              parseNestedRelations(arrayItem[nestedKey], nestedConfig, tempResult, nestedKey);
-
-              // Add collected values to the nested collections
-              for (const [key, value] of Object.entries(tempResult)) {
-                if (!nestedCollections[key]) {
-                  nestedCollections[key] = [];
-                }
-                if (value) {
-                  nestedCollections[key].push(value);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Set column values if any (one cell per configured column)
-    for (const [key, values] of Object.entries(columnCollections)) {
-      if (values.length > 0) {
-        const uniqueValues = [...new Set(values.filter(Boolean))];
-        result[key] = uniqueValues.join(', ');
-      }
-    }
-
-    // Set nested relation values (use their own keys)
-    for (const [key, values] of Object.entries(nestedCollections)) {
-      if (values.length > 0) {
-        const uniqueValues = [...new Set(values.filter(Boolean))];
-        result[key] = uniqueValues.join(', ');
-      }
+    for (const key of keys) {
+      result[key] = rows.map((row) => row[key] ?? '').join(', ');
     }
 
     return;

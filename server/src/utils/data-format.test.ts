@@ -185,6 +185,86 @@ describe('relation with multiple configured columns', () => {
   });
 });
 
+describe('relation list value preservation', () => {
+  const records = [
+    { id: 1, name: 'Same', score: 0, active: false },
+    { id: 2, name: 'Same', score: 5, active: true },
+    { id: 3, name: null, score: null },
+    { id: 4, name: '', active: false },
+    { id: 5, score: 0, active: true },
+  ];
+  const tagConfig = { column: ['id', 'name', 'score', 'active'] };
+  const expected = {
+    'tags:id': '1, 2, 3, 4, 5',
+    'tags:name': 'Same, Same, , , ',
+    'tags:score': '0, 5, , , 0',
+    'tags:active': 'false, true, , false, true',
+  };
+
+  it('preserves duplicates, falsy values, and missing fields in corresponding positions', async () => {
+    const rows = await restructureData(
+      [{ tags: records }],
+      { columns: [], relation: { tags: tagConfig } },
+      uid,
+      {}
+    );
+
+    expect(rows).toEqual([expected]);
+  });
+
+  it.each(['to-one', 'to-many'])('preserves nested %s relation values across parents', async (kind) => {
+    const parents = records.map((record) => ({
+      tags: kind === 'to-one' ? record : [record],
+    }));
+    const rows = await restructureData(
+      [{ parents }],
+      { columns: [], relation: { parents: { column: [], relation: { tags: tagConfig } } } },
+      uid,
+      {}
+    );
+
+    expect(rows[0]).toMatchObject(expected);
+  });
+
+  it('keeps placeholders for missing and empty nested relations', async () => {
+    const rows = await restructureData(
+      [{ parents: [{}, { tags: records[0] }, { tags: null }, { tags: [] }, { tags: records[1] }] }],
+      { columns: [], relation: { parents: { column: [], relation: { tags: tagConfig } } } },
+      uid,
+      {}
+    );
+
+    expect(rows[0]).toMatchObject({
+      'tags:id': ', 1, , , 2',
+      'tags:name': ', Same, , , Same',
+      'tags:score': ', 0, , , 5',
+      'tags:active': ', false, , , true',
+    });
+  });
+
+  it('preserves values under the relation name for single-column lists', async () => {
+    const rows = await restructureData(
+      [{ tags: [{ value: 0 }, { value: false }, {}, { value: 'Same' }, { value: 'Same' }] }],
+      { columns: [], relation: { tags: { column: ['value'] } } },
+      uid,
+      {}
+    );
+
+    expect(rows).toEqual([{ tags: '0, false, , Same, Same' }]);
+  });
+
+  it('keeps empty or null relations blank', async () => {
+    const rows = await restructureData(
+      [{ tags: [] }, { tags: null }, {}],
+      { columns: [], relation: { tags: tagConfig } },
+      uid,
+      {}
+    );
+
+    expect(rows).toEqual([{}, {}, {}]);
+  });
+});
+
 describe('non-datetime values', () => {
   const run = (value: any, options = {}) =>
     restructureData([{ v: value }], { columns: ['v'] }, uid, options);
